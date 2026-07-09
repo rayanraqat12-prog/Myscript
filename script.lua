@@ -6,6 +6,7 @@
     - Minimize to cosmic cube with green "S"
     - Both main window and floating button are draggable via mouse or touch
     - Height: 420px
+    -- FIXED: titleLabel.Active = false (was blocking all input)
 --]]
 
 local Players = game:GetService("Players")
@@ -143,7 +144,7 @@ titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextSize = 13
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.ZIndex = 3
-titleLabel.Active = true
+titleLabel.Active = false   -- << FIX: was true, now false to allow dragging & clicks through
 titleLabel.Parent = titleBar
 
 local minimizeButton = Instance.new("TextButton")
@@ -794,7 +795,7 @@ local function realisticTeleport(targetCFrame)
     end
 end
 
--- ============ FLY (FIXED) ============
+-- ============ FLY ============
 local function startFlying()
     if isFlying then return end
     isFlying = true
