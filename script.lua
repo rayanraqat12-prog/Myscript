@@ -5,6 +5,7 @@
       - Save their current position under a custom name
       - Browse saved positions in a scrolling menu
       - Select one and teleport to it
+      - Delete individual positions or clear all
       - Drag the window around, minimize it
 
     HOW TO USE:
@@ -41,8 +42,8 @@ screenGui.Parent = playerGui
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 260, 0, 340)
-mainFrame.Position = UDim2.new(0.5, -130, 0.5, -170)
+mainFrame.Size = UDim2.new(0, 260, 0, 420)
+mainFrame.Position = UDim2.new(0.5, -130, 0.5, -210)
 mainFrame.BackgroundColor3 = Color3.fromRGB(10, 8, 30)
 mainFrame.BorderSizePixel = 0
 mainFrame.ClipsDescendants = true
@@ -227,7 +228,7 @@ menuLabel.Parent = bodyFrame
 -- Scrolling list of saved positions
 local scrollFrame = Instance.new("ScrollingFrame")
 scrollFrame.Name = "PositionList"
-scrollFrame.Size = UDim2.new(1, -24, 1, -178)
+scrollFrame.Size = UDim2.new(1, -24, 1, -210)
 scrollFrame.Position = UDim2.new(0, 12, 0, 118)
 scrollFrame.BackgroundColor3 = Color3.fromRGB(18, 12, 40)
 scrollFrame.BackgroundTransparency = 0.3
@@ -258,13 +259,13 @@ listPadding.Parent = scrollFrame
 -- Teleport button
 local teleportButton = Instance.new("TextButton")
 teleportButton.Name = "TeleportButton"
-teleportButton.Size = UDim2.new(1, -24, 0, 40)
-teleportButton.Position = UDim2.new(0, 12, 1, -50)
+teleportButton.Size = UDim2.new(0.5, -4, 0, 34)
+teleportButton.Position = UDim2.new(0, 12, 1, -82)
 teleportButton.BackgroundColor3 = Color3.fromRGB(50, 25, 100)
-teleportButton.Text = "🚀 Teleport to Selected"
+teleportButton.Text = "🚀 Teleport"
 teleportButton.TextColor3 = Color3.fromRGB(240, 230, 255)
 teleportButton.Font = Enum.Font.GothamBold
-teleportButton.TextSize = 14
+teleportButton.TextSize = 12
 teleportButton.AutoButtonColor = false
 teleportButton.ZIndex = 3
 teleportButton.Parent = bodyFrame
@@ -277,6 +278,52 @@ local teleportStroke = Instance.new("UIStroke")
 teleportStroke.Color = Color3.fromRGB(150, 100, 255)
 teleportStroke.Transparency = 0.3
 teleportStroke.Parent = teleportButton
+
+-- Delete button
+local deleteButton = Instance.new("TextButton")
+deleteButton.Name = "DeleteButton"
+deleteButton.Size = UDim2.new(0.5, -4, 0, 34)
+deleteButton.Position = UDim2.new(0.5, 4, 1, -82)
+deleteButton.BackgroundColor3 = Color3.fromRGB(150, 30, 50)
+deleteButton.Text = "🗑️ Delete"
+deleteButton.TextColor3 = Color3.fromRGB(255, 200, 200)
+deleteButton.Font = Enum.Font.GothamBold
+deleteButton.TextSize = 12
+deleteButton.AutoButtonColor = false
+deleteButton.ZIndex = 3
+deleteButton.Parent = bodyFrame
+
+local deleteCorner = Instance.new("UICorner")
+deleteCorner.CornerRadius = UDim.new(0, 10)
+deleteCorner.Parent = deleteButton
+
+local deleteStroke = Instance.new("UIStroke")
+deleteStroke.Color = Color3.fromRGB(200, 100, 100)
+deleteStroke.Transparency = 0.3
+deleteStroke.Parent = deleteButton
+
+-- Clear All button
+local clearButton = Instance.new("TextButton")
+clearButton.Name = "ClearButton"
+clearButton.Size = UDim2.new(1, -24, 0, 34)
+clearButton.Position = UDim2.new(0, 12, 1, -40)
+clearButton.BackgroundColor3 = Color3.fromRGB(100, 20, 20)
+clearButton.Text = "⚠️ Clear All Positions"
+clearButton.TextColor3 = Color3.fromRGB(255, 150, 150)
+clearButton.Font = Enum.Font.GothamBold
+clearButton.TextSize = 12
+clearButton.AutoButtonColor = false
+clearButton.ZIndex = 3
+clearButton.Parent = bodyFrame
+
+local clearCorner = Instance.new("UICorner")
+clearCorner.CornerRadius = UDim.new(0, 10)
+clearCorner.Parent = clearButton
+
+local clearStroke = Instance.new("UIStroke")
+clearStroke.Color = Color3.fromRGB(200, 80, 80)
+clearStroke.Transparency = 0.3
+clearStroke.Parent = clearButton
 
 -- ============ POSITION LIST LOGIC ============
 local entryButtons = {} -- index -> button instance
@@ -360,6 +407,48 @@ teleportButton.MouseButton1Click:Connect(function()
     if not hrp then return end
 
     hrp.CFrame = savedPositions[selectedIndex].cframe
+end)
+
+-- ============ DELETE BUTTON ============
+deleteButton.MouseButton1Click:Connect(function()
+    if not selectedIndex or not savedPositions[selectedIndex] then return end
+
+    -- Remove from savedPositions
+    table.remove(savedPositions, selectedIndex)
+
+    -- Remove button from UI
+    if entryButtons[selectedIndex] then
+        entryButtons[selectedIndex]:Destroy()
+        entryButtons[selectedIndex] = nil
+    end
+
+    -- Clear selection
+    selectedIndex = nil
+    refreshHighlights()
+
+    -- Rebuild list indices
+    local newEntryButtons = {}
+    for i = 1, #savedPositions do
+        local oldBtn = entryButtons[i]
+        if oldBtn then
+            oldBtn.LayoutOrder = i
+            newEntryButtons[i] = oldBtn
+        end
+    end
+    entryButtons = newEntryButtons
+end)
+
+-- ============ CLEAR ALL BUTTON ============
+clearButton.MouseButton1Click:Connect(function()
+    -- Clear all saved positions
+    savedPositions = {}
+    selectedIndex = nil
+
+    -- Destroy all entry buttons
+    for i, btn in pairs(entryButtons) do
+        btn:Destroy()
+    end
+    entryButtons = {}
 end)
 
 -- ============ MINIMIZE LOGIC ============
