@@ -1,7 +1,11 @@
 --[[
-    Galaxy Teleporter GUI – LocalScript (run anywhere)
-    Minimize → cosmic cube with green "S"
-    Drag the window and the cube. Height reduced to 420px.
+    Galaxy Teleporter GUI – LocalScript
+    - Save / Teleport (instant, smooth, realistic)
+    - Fly (adjustable speed) + Noclip + Invisible + Walkspeed
+    - Auto Teleport (draggable floating cosmic button)
+    - Minimize to cosmic cube with green "S"
+    - Both main window and floating button are draggable
+    - Height: 420px
 --]]
 
 local Players = game:GetService("Players")
@@ -18,25 +22,30 @@ local savedPositions = {}
 local selectedIndex = nil
 local teleportMethod = "instant"
 
--- Fly state
+-- Fly
 local isFlying = false
 local flySpeed = 50
 local flyBody = nil
 local flyConnection = nil
 
--- Noclip state
+-- Noclip
 local isNoclipping = false
 local noclipSpeed = 25
 local originalCollisionGroups = {}
 local noclipConnection = nil
 
--- Invisible state
+-- Invisible
 local isInvisible = false
 local originalCharacterParts = {}
 
+-- Auto Teleport
+local autoTeleportEnabled = false
+local autoTeleportGui = nil
+local autoTeleportButton = nil
+
 -- Helper
 local function clamp(value, min, max)
-	return math.max(min, math.min(max, value))
+    return math.max(min, math.min(max, value))
 end
 
 -- ============ GUI SETUP ============
@@ -45,10 +54,10 @@ screenGui.Name = "GalaxyTeleporterGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
--- ============ MAIN WINDOW (Full View) ============
+-- Main window
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 380, 0, 420)          -- reduced height
+mainFrame.Size = UDim2.new(0, 380, 0, 420)
 mainFrame.Position = UDim2.new(0.5, -190, 0.5, -210)
 mainFrame.BackgroundColor3 = Color3.fromRGB(10, 8, 30)
 mainFrame.BorderSizePixel = 0
@@ -61,9 +70,9 @@ mainCorner.Parent = mainFrame
 
 local gradient = Instance.new("UIGradient")
 gradient.Color = ColorSequence.new({
-	ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 10, 45)),
-	ColorSequenceKeypoint.new(0.5, Color3.fromRGB(45, 15, 75)),
-	ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 20, 60)),
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 10, 45)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(45, 15, 75)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 20, 60)),
 })
 gradient.Rotation = 45
 gradient.Parent = mainFrame
@@ -74,34 +83,32 @@ stroke.Thickness = 1.5
 stroke.Transparency = 0.3
 stroke.Parent = mainFrame
 
--- Scattered stars inside main window
+-- Star helper
 local function addStar(parent, xScale, yScale, size, brightness)
-	local star = Instance.new("Frame")
-	star.Size = UDim2.new(0, size, 0, size)
-	star.Position = UDim2.new(xScale, 0, yScale, 0)
-	star.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	star.BackgroundTransparency = 1 - brightness
-	star.BorderSizePixel = 0
-	star.ZIndex = 1
-	star.Parent = parent
-
-	Instance.new("UICorner", star).CornerRadius = UDim.new(1, 0)
-
-	task.spawn(function()
-		while star.Parent do
-			local t1 = TweenService:Create(star, TweenInfo.new(math.random(10, 25) / 10), {BackgroundTransparency = 1})
-			t1:Play()
-			t1.Completed:Wait()
-			local t2 = TweenService:Create(star, TweenInfo.new(math.random(10, 25) / 10), {BackgroundTransparency = 1 - brightness})
-			t2:Play()
-			t2.Completed:Wait()
-		end
-	end)
+    local star = Instance.new("Frame")
+    star.Size = UDim2.new(0, size, 0, size)
+    star.Position = UDim2.new(xScale, 0, yScale, 0)
+    star.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    star.BackgroundTransparency = 1 - brightness
+    star.BorderSizePixel = 0
+    star.ZIndex = 1
+    star.Parent = parent
+    Instance.new("UICorner", star).CornerRadius = UDim.new(1, 0)
+    task.spawn(function()
+        while star.Parent do
+            local t1 = TweenService:Create(star, TweenInfo.new(math.random(10, 25) / 10), {BackgroundTransparency = 1})
+            t1:Play()
+            t1.Completed:Wait()
+            local t2 = TweenService:Create(star, TweenInfo.new(math.random(10, 25) / 10), {BackgroundTransparency = 1 - brightness})
+            t2:Play()
+            t2.Completed:Wait()
+        end
+    end)
 end
 
 math.randomseed(tick())
 for i = 1, 16 do
-	addStar(mainFrame, math.random(0, 100) / 100, math.random(0, 100) / 100, math.random(1, 3), math.random(40, 90) / 100)
+    addStar(mainFrame, math.random(0, 100) / 100, math.random(0, 100) / 100, math.random(1, 3), math.random(40, 90) / 100)
 end
 
 -- ============ TITLE BAR ============
@@ -140,36 +147,30 @@ titleLabel.ZIndex = 3
 titleLabel.Active = true
 titleLabel.Parent = titleBar
 
-minimizeButton.MouseButton1Click:Connect(function()
-    if mainFrame.Visible then
-        -- Hide the full window, show the cosmic cube
-        contentFrame.Visible = false
-        mainFrame.Visible = false
-        minimizedCube.Visible = true
-        minimizedCube.Position = UDim2.new(0, mainFrame.AbsolutePosition.X, 0, mainFrame.AbsolutePosition.Y)
-        minimizeButton.Text = "+"
-    else
-        -- Restore from cube
-        if minimizedCube.Visible then minimizedCube.Visible = false end
-        mainFrame.Visible = true
-        contentFrame.Visible = true
-        mainFrame.Position = UDim2.new(0, minimizedCube.AbsolutePosition.X, 0, minimizedCube.AbsolutePosition.Y)
-        minimizeButton.Text = "–"
-    end
-end)
+local minimizeButton = Instance.new("TextButton")
+minimizeButton.Name = "MinimizeButton"
+minimizeButton.Size = UDim2.new(0, 28, 0, 28)
+minimizeButton.Position = UDim2.new(1, -34, 0.5, -14)
+minimizeButton.BackgroundColor3 = Color3.fromRGB(60, 30, 100)
+minimizeButton.Text = "–"
+minimizeButton.TextColor3 = Color3.fromRGB(230, 210, 255)
+minimizeButton.Font = Enum.Font.GothamBold
+minimizeButton.TextSize = 16
+minimizeButton.ZIndex = 3
+minimizeButton.Parent = titleBar
 
--- ============ MAIN CONTENT FRAME ============
+Instance.new("UICorner", minimizeButton).CornerRadius = UDim.new(1, 0)
+
+-- ============ MAIN CONTENT ============
 local contentFrame = Instance.new("Frame")
-contentFrame.Name = "ContentFrame"
 contentFrame.Size = UDim2.new(1, 0, 1, -30)
 contentFrame.Position = UDim2.new(0, 0, 0, 30)
 contentFrame.BackgroundTransparency = 1
 contentFrame.ZIndex = 2
 contentFrame.Parent = mainFrame
 
--- ============ SIDE TAB BAR (Left Side) ============
+-- Tab bar
 local tabBar = Instance.new("Frame")
-tabBar.Name = "TabBar"
 tabBar.Size = UDim2.new(0, 90, 1, 0)
 tabBar.Position = UDim2.new(0, 0, 0, 0)
 tabBar.BackgroundColor3 = Color3.fromRGB(15, 12, 35)
@@ -182,9 +183,7 @@ tabBarStroke.Color = Color3.fromRGB(100, 70, 180)
 tabBarStroke.Transparency = 0.5
 tabBarStroke.Parent = tabBar
 
-local tabBarCorner = Instance.new("UICorner")
-tabBarCorner.CornerRadius = UDim.new(0, 16)
-tabBarCorner.Parent = tabBar
+Instance.new("UICorner", tabBar).CornerRadius = UDim.new(0, 16)
 
 local tabLayout = Instance.new("UIListLayout")
 tabLayout.Padding = UDim.new(0, 4)
@@ -199,9 +198,8 @@ tabPadding.PaddingLeft = UDim.new(0, 4)
 tabPadding.PaddingRight = UDim.new(0, 4)
 tabPadding.Parent = tabBar
 
--- Teleporter Tab Button
+-- Teleporter tab button
 local teleporterTabBtn = Instance.new("TextButton")
-teleporterTabBtn.Name = "TeleporterTab"
 teleporterTabBtn.Size = UDim2.new(1, 0, 0, 35)
 teleporterTabBtn.BackgroundColor3 = Color3.fromRGB(70, 30, 120)
 teleporterTabBtn.Text = "🏠\nTP"
@@ -213,18 +211,14 @@ teleporterTabBtn.ZIndex = 3
 teleporterTabBtn.LayoutOrder = 1
 teleporterTabBtn.Parent = tabBar
 
-local teleporterTabCorner = Instance.new("UICorner")
-teleporterTabCorner.CornerRadius = UDim.new(0, 8)
-teleporterTabCorner.Parent = teleporterTabBtn
-
+Instance.new("UICorner", teleporterTabBtn).CornerRadius = UDim.new(0, 8)
 local teleporterTabStroke = Instance.new("UIStroke")
 teleporterTabStroke.Color = Color3.fromRGB(150, 100, 255)
 teleporterTabStroke.Transparency = 0.3
 teleporterTabStroke.Parent = teleporterTabBtn
 
--- Misc Tab Button
+-- Misc tab button
 local miscTabBtn = Instance.new("TextButton")
-miscTabBtn.Name = "MiscTab"
 miscTabBtn.Size = UDim2.new(1, 0, 0, 35)
 miscTabBtn.BackgroundColor3 = Color3.fromRGB(40, 25, 70)
 miscTabBtn.Text = "⭐\nMisc"
@@ -236,27 +230,22 @@ miscTabBtn.ZIndex = 3
 miscTabBtn.LayoutOrder = 2
 miscTabBtn.Parent = tabBar
 
-local miscTabCorner = Instance.new("UICorner")
-miscTabCorner.CornerRadius = UDim.new(0, 8)
-miscTabCorner.Parent = miscTabBtn
-
+Instance.new("UICorner", miscTabBtn).CornerRadius = UDim.new(0, 8)
 local miscTabStroke = Instance.new("UIStroke")
 miscTabStroke.Color = Color3.fromRGB(100, 70, 180)
 miscTabStroke.Transparency = 0.5
 miscTabStroke.Parent = miscTabBtn
 
--- ============ BODY (Right Side) ============
+-- Body
 local bodyFrame = Instance.new("Frame")
-bodyFrame.Name = "Body"
 bodyFrame.Size = UDim2.new(1, -90, 1, 0)
 bodyFrame.Position = UDim2.new(0, 90, 0, 0)
 bodyFrame.BackgroundTransparency = 1
 bodyFrame.ZIndex = 2
 bodyFrame.Parent = contentFrame
 
--- ============ TELEPORTER TAB ============
+-- ============ TELEPORTER TAB (FULL) ============
 local teleporterTab = Instance.new("Frame")
-teleporterTab.Name = "TeleporterTab"
 teleporterTab.Size = UDim2.new(1, 0, 1, 0)
 teleporterTab.BackgroundTransparency = 1
 teleporterTab.ZIndex = 3
@@ -284,9 +273,8 @@ teleporterScrollPadding.PaddingLeft = UDim.new(0, 6)
 teleporterScrollPadding.PaddingRight = UDim.new(0, 6)
 teleporterScrollPadding.Parent = teleporterScroll
 
--- Name input box
+-- Name input
 local nameBox = Instance.new("TextBox")
-nameBox.Name = "NameBox"
 nameBox.Size = UDim2.new(1, 0, 0, 22)
 nameBox.BackgroundColor3 = Color3.fromRGB(30, 20, 60)
 nameBox.PlaceholderText = "Name..."
@@ -301,12 +289,12 @@ nameBox.LayoutOrder = 1
 nameBox.Parent = teleporterScroll
 
 Instance.new("UICorner", nameBox).CornerRadius = UDim.new(0, 6)
-Instance.new("UIStroke", nameBox).Color = Color3.fromRGB(120, 90, 200)
-nameBox.UIStroke.Transparency = 0.4
+local ns = Instance.new("UIStroke", nameBox)
+ns.Color = Color3.fromRGB(120, 90, 200)
+ns.Transparency = 0.4
 
 -- Save button
 local saveButton = Instance.new("TextButton")
-saveButton.Name = "SaveButton"
 saveButton.Size = UDim2.new(1, 0, 0, 24)
 saveButton.BackgroundColor3 = Color3.fromRGB(70, 30, 120)
 saveButton.Text = "✦ Save"
@@ -321,13 +309,13 @@ saveButton.Parent = teleporterScroll
 Instance.new("UICorner", saveButton).CornerRadius = UDim.new(0, 6)
 local saveGradient = Instance.new("UIGradient")
 saveGradient.Color = ColorSequence.new({
-	ColorSequenceKeypoint.new(0, Color3.fromRGB(90, 40, 150)),
-	ColorSequenceKeypoint.new(1, Color3.fromRGB(40, 20, 90)),
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(90, 40, 150)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(40, 20, 90)),
 })
 saveGradient.Rotation = 90
 saveGradient.Parent = saveButton
 
--- Teleport Method Label
+-- Method label
 local methodLabel = Instance.new("TextLabel")
 methodLabel.Size = UDim2.new(1, 0, 0, 12)
 methodLabel.BackgroundTransparency = 1
@@ -340,7 +328,7 @@ methodLabel.ZIndex = 3
 methodLabel.LayoutOrder = 3
 methodLabel.Parent = teleporterScroll
 
--- Method Selection Buttons Container
+-- Method buttons container
 local methodButtonsContainer = Instance.new("Frame")
 methodButtonsContainer.Size = UDim2.new(1, 0, 0, 20)
 methodButtonsContainer.BackgroundTransparency = 1
@@ -354,9 +342,7 @@ methodLayout.SortOrder = Enum.SortOrder.LayoutOrder
 methodLayout.FillDirection = Enum.FillDirection.Horizontal
 methodLayout.Parent = methodButtonsContainer
 
--- Method buttons
 local instantMethodBtn = Instance.new("TextButton")
-instantMethodBtn.Name = "InstantMethod"
 instantMethodBtn.Size = UDim2.new(0.33, -1.33, 1, 0)
 instantMethodBtn.BackgroundColor3 = Color3.fromRGB(100, 60, 180)
 instantMethodBtn.Text = "Inst"
@@ -371,7 +357,6 @@ instantMethodBtn.Parent = methodButtonsContainer
 Instance.new("UICorner", instantMethodBtn).CornerRadius = UDim.new(0, 5)
 
 local tweenMethodBtn = Instance.new("TextButton")
-tweenMethodBtn.Name = "TweenMethod"
 tweenMethodBtn.Size = UDim2.new(0.33, -1.33, 1, 0)
 tweenMethodBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 100)
 tweenMethodBtn.Text = "Smth"
@@ -386,7 +371,6 @@ tweenMethodBtn.Parent = methodButtonsContainer
 Instance.new("UICorner", tweenMethodBtn).CornerRadius = UDim.new(0, 5)
 
 local realisticMethodBtn = Instance.new("TextButton")
-realisticMethodBtn.Name = "RealisticMethod"
 realisticMethodBtn.Size = UDim2.new(0.33, -1.33, 1, 0)
 realisticMethodBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 100)
 realisticMethodBtn.Text = "Real"
@@ -415,7 +399,6 @@ menuLabel.Parent = teleporterScroll
 
 -- Scrolling list of saved positions
 local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Name = "PositionList"
 scrollFrame.Size = UDim2.new(1, 0, 0, 100)
 scrollFrame.BackgroundColor3 = Color3.fromRGB(18, 12, 40)
 scrollFrame.BackgroundTransparency = 0.3
@@ -442,7 +425,7 @@ listPadding.PaddingLeft = UDim.new(0, 3)
 listPadding.PaddingRight = UDim.new(0, 3)
 listPadding.Parent = scrollFrame
 
--- Button container
+-- Bottom buttons
 local buttonContainer = Instance.new("Frame")
 buttonContainer.Size = UDim2.new(1, 0, 0, 54)
 buttonContainer.BackgroundTransparency = 1
@@ -456,9 +439,7 @@ buttonLayout.SortOrder = Enum.SortOrder.LayoutOrder
 buttonLayout.FillDirection = Enum.FillDirection.Vertical
 buttonLayout.Parent = buttonContainer
 
--- Teleport button
 local teleportButton = Instance.new("TextButton")
-teleportButton.Name = "TeleportButton"
 teleportButton.Size = UDim2.new(1, 0, 0, 22)
 teleportButton.BackgroundColor3 = Color3.fromRGB(50, 25, 100)
 teleportButton.Text = "🚀 TP"
@@ -471,10 +452,10 @@ teleportButton.LayoutOrder = 1
 teleportButton.Parent = buttonContainer
 
 Instance.new("UICorner", teleportButton).CornerRadius = UDim.new(0, 6)
-Instance.new("UIStroke", teleportButton).Color = Color3.fromRGB(150, 100, 255)
-teleportButton.UIStroke.Transparency = 0.3
+local ts = Instance.new("UIStroke", teleportButton)
+ts.Color = Color3.fromRGB(150, 100, 255)
+ts.Transparency = 0.3
 
--- Delete & Clear Container
 local deleteClearContainer = Instance.new("Frame")
 deleteClearContainer.Size = UDim2.new(1, 0, 0, 24)
 deleteClearContainer.BackgroundTransparency = 1
@@ -488,9 +469,7 @@ deleteClearLayout.SortOrder = Enum.SortOrder.LayoutOrder
 deleteClearLayout.FillDirection = Enum.FillDirection.Horizontal
 deleteClearLayout.Parent = deleteClearContainer
 
--- Delete button
 local deleteButton = Instance.new("TextButton")
-deleteButton.Name = "DeleteButton"
 deleteButton.Size = UDim2.new(0.5, -1, 1, 0)
 deleteButton.BackgroundColor3 = Color3.fromRGB(150, 30, 50)
 deleteButton.Text = "🗑️ Del"
@@ -503,12 +482,11 @@ deleteButton.LayoutOrder = 1
 deleteButton.Parent = deleteClearContainer
 
 Instance.new("UICorner", deleteButton).CornerRadius = UDim.new(0, 6)
-Instance.new("UIStroke", deleteButton).Color = Color3.fromRGB(200, 100, 100)
-deleteButton.UIStroke.Transparency = 0.3
+local ds = Instance.new("UIStroke", deleteButton)
+ds.Color = Color3.fromRGB(200, 100, 100)
+ds.Transparency = 0.3
 
--- Clear All button
 local clearButton = Instance.new("TextButton")
-clearButton.Name = "ClearButton"
 clearButton.Size = UDim2.new(0.5, -1, 1, 0)
 clearButton.BackgroundColor3 = Color3.fromRGB(100, 20, 20)
 clearButton.Text = "⚠️ Clr"
@@ -521,12 +499,12 @@ clearButton.LayoutOrder = 2
 clearButton.Parent = deleteClearContainer
 
 Instance.new("UICorner", clearButton).CornerRadius = UDim.new(0, 6)
-Instance.new("UIStroke", clearButton).Color = Color3.fromRGB(200, 80, 80)
-clearButton.UIStroke.Transparency = 0.3
+local cs = Instance.new("UIStroke", clearButton)
+cs.Color = Color3.fromRGB(200, 80, 80)
+cs.Transparency = 0.3
 
--- ============ MISC TAB ============
+-- ============ MISC TAB (FULL) ============
 local miscTab = Instance.new("Frame")
-miscTab.Name = "MiscTab"
 miscTab.Size = UDim2.new(1, 0, 1, 0)
 miscTab.BackgroundTransparency = 1
 miscTab.ZIndex = 3
@@ -554,9 +532,8 @@ miscScrollPadding.PaddingLeft = UDim.new(0, 8)
 miscScrollPadding.PaddingRight = UDim.new(0, 8)
 miscScrollPadding.Parent = miscScroll
 
--- Fly Toggle Button
+-- Fly toggle
 local flyToggleBtn = Instance.new("TextButton")
-flyToggleBtn.Name = "FlyToggle"
 flyToggleBtn.Size = UDim2.new(1, 0, 0, 32)
 flyToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 120, 30)
 flyToggleBtn.Text = "✈️ Fly"
@@ -569,10 +546,11 @@ flyToggleBtn.LayoutOrder = 1
 flyToggleBtn.Parent = miscScroll
 
 Instance.new("UICorner", flyToggleBtn).CornerRadius = UDim.new(0, 8)
-Instance.new("UIStroke", flyToggleBtn).Color = Color3.fromRGB(100, 200, 100)
-flyToggleBtn.UIStroke.Transparency = 0.3
+local fts = Instance.new("UIStroke", flyToggleBtn)
+fts.Color = Color3.fromRGB(100, 200, 100)
+fts.Transparency = 0.3
 
--- Fly Speed Label
+-- Fly speed label
 local flySpeedLabel = Instance.new("TextLabel")
 flySpeedLabel.Size = UDim2.new(1, 0, 0, 16)
 flySpeedLabel.BackgroundTransparency = 1
@@ -585,9 +563,8 @@ flySpeedLabel.ZIndex = 3
 flySpeedLabel.LayoutOrder = 2
 flySpeedLabel.Parent = miscScroll
 
--- Fly Speed Slider
+-- Fly speed input
 local flySpeedSlider = Instance.new("TextBox")
-flySpeedSlider.Name = "FlySpeedSlider"
 flySpeedSlider.Size = UDim2.new(1, 0, 0, 24)
 flySpeedSlider.BackgroundColor3 = Color3.fromRGB(30, 30, 60)
 flySpeedSlider.PlaceholderText = "1-200"
@@ -601,12 +578,12 @@ flySpeedSlider.LayoutOrder = 3
 flySpeedSlider.Parent = miscScroll
 
 Instance.new("UICorner", flySpeedSlider).CornerRadius = UDim.new(0, 6)
-Instance.new("UIStroke", flySpeedSlider).Color = Color3.fromRGB(120, 90, 200)
-flySpeedSlider.UIStroke.Transparency = 0.4
+local fss = Instance.new("UIStroke", flySpeedSlider)
+fss.Color = Color3.fromRGB(120, 90, 200)
+fss.Transparency = 0.4
 
--- Noclip Toggle Button
+-- Noclip toggle
 local noclipToggleBtn = Instance.new("TextButton")
-noclipToggleBtn.Name = "NoclipToggle"
 noclipToggleBtn.Size = UDim2.new(1, 0, 0, 32)
 noclipToggleBtn.BackgroundColor3 = Color3.fromRGB(120, 80, 30)
 noclipToggleBtn.Text = "👻 Noclip"
@@ -619,10 +596,11 @@ noclipToggleBtn.LayoutOrder = 4
 noclipToggleBtn.Parent = miscScroll
 
 Instance.new("UICorner", noclipToggleBtn).CornerRadius = UDim.new(0, 8)
-Instance.new("UIStroke", noclipToggleBtn).Color = Color3.fromRGB(200, 160, 80)
-noclipToggleBtn.UIStroke.Transparency = 0.3
+local nts = Instance.new("UIStroke", noclipToggleBtn)
+nts.Color = Color3.fromRGB(200, 160, 80)
+nts.Transparency = 0.3
 
--- Noclip Speed Label
+-- Noclip speed label
 local noclipSpeedLabel = Instance.new("TextLabel")
 noclipSpeedLabel.Size = UDim2.new(1, 0, 0, 16)
 noclipSpeedLabel.BackgroundTransparency = 1
@@ -635,9 +613,8 @@ noclipSpeedLabel.ZIndex = 3
 noclipSpeedLabel.LayoutOrder = 5
 noclipSpeedLabel.Parent = miscScroll
 
--- Noclip Speed Slider
+-- Noclip speed input
 local noclipSpeedSlider = Instance.new("TextBox")
-noclipSpeedSlider.Name = "NoclipSpeedSlider"
 noclipSpeedSlider.Size = UDim2.new(1, 0, 0, 24)
 noclipSpeedSlider.BackgroundColor3 = Color3.fromRGB(30, 30, 60)
 noclipSpeedSlider.PlaceholderText = "1-100"
@@ -651,12 +628,12 @@ noclipSpeedSlider.LayoutOrder = 6
 noclipSpeedSlider.Parent = miscScroll
 
 Instance.new("UICorner", noclipSpeedSlider).CornerRadius = UDim.new(0, 6)
-Instance.new("UIStroke", noclipSpeedSlider).Color = Color3.fromRGB(120, 90, 200)
-noclipSpeedSlider.UIStroke.Transparency = 0.4
+local nss = Instance.new("UIStroke", noclipSpeedSlider)
+nss.Color = Color3.fromRGB(120, 90, 200)
+nss.Transparency = 0.4
 
--- Invisible Toggle Button
+-- Invisible toggle
 local invisibleToggleBtn = Instance.new("TextButton")
-invisibleToggleBtn.Name = "InvisibleToggle"
 invisibleToggleBtn.Size = UDim2.new(1, 0, 0, 32)
 invisibleToggleBtn.BackgroundColor3 = Color3.fromRGB(100, 50, 150)
 invisibleToggleBtn.Text = "👁️ Invisible"
@@ -669,10 +646,29 @@ invisibleToggleBtn.LayoutOrder = 7
 invisibleToggleBtn.Parent = miscScroll
 
 Instance.new("UICorner", invisibleToggleBtn).CornerRadius = UDim.new(0, 8)
-Instance.new("UIStroke", invisibleToggleBtn).Color = Color3.fromRGB(180, 120, 220)
-invisibleToggleBtn.UIStroke.Transparency = 0.3
+local its = Instance.new("UIStroke", invisibleToggleBtn)
+its.Color = Color3.fromRGB(180, 120, 220)
+its.Transparency = 0.3
 
--- WalkSpeed Label
+-- Auto Teleport toggle
+local autoTpToggleBtn = Instance.new("TextButton")
+autoTpToggleBtn.Size = UDim2.new(1, 0, 0, 32)
+autoTpToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 100, 100)
+autoTpToggleBtn.Text = "⚡ Auto TP OFF"
+autoTpToggleBtn.TextColor3 = Color3.fromRGB(200, 255, 255)
+autoTpToggleBtn.Font = Enum.Font.GothamBold
+autoTpToggleBtn.TextSize = 11
+autoTpToggleBtn.AutoButtonColor = false
+autoTpToggleBtn.ZIndex = 3
+autoTpToggleBtn.LayoutOrder = 8
+autoTpToggleBtn.Parent = miscScroll
+
+Instance.new("UICorner", autoTpToggleBtn).CornerRadius = UDim.new(0, 8)
+local ats = Instance.new("UIStroke", autoTpToggleBtn)
+ats.Color = Color3.fromRGB(0, 200, 200)
+ats.Transparency = 0.3
+
+-- Walk speed label
 local walkSpeedLabel = Instance.new("TextLabel")
 walkSpeedLabel.Size = UDim2.new(1, 0, 0, 16)
 walkSpeedLabel.BackgroundTransparency = 1
@@ -682,12 +678,11 @@ walkSpeedLabel.Font = Enum.Font.GothamBold
 walkSpeedLabel.TextSize = 10
 walkSpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
 walkSpeedLabel.ZIndex = 3
-walkSpeedLabel.LayoutOrder = 8
+walkSpeedLabel.LayoutOrder = 9
 walkSpeedLabel.Parent = miscScroll
 
--- WalkSpeed Input
+-- Walk speed input
 local walkSpeedInput = Instance.new("TextBox")
-walkSpeedInput.Name = "WalkSpeedInput"
 walkSpeedInput.Size = UDim2.new(1, 0, 0, 24)
 walkSpeedInput.BackgroundColor3 = Color3.fromRGB(30, 30, 60)
 walkSpeedInput.PlaceholderText = "1-200"
@@ -697,16 +692,16 @@ walkSpeedInput.PlaceholderColor3 = Color3.fromRGB(140, 120, 180)
 walkSpeedInput.Font = Enum.Font.Gotham
 walkSpeedInput.TextSize = 11
 walkSpeedInput.ZIndex = 3
-walkSpeedInput.LayoutOrder = 9
+walkSpeedInput.LayoutOrder = 10
 walkSpeedInput.Parent = miscScroll
 
 Instance.new("UICorner", walkSpeedInput).CornerRadius = UDim.new(0, 6)
-Instance.new("UIStroke", walkSpeedInput).Color = Color3.fromRGB(120, 90, 200)
-walkSpeedInput.UIStroke.Transparency = 0.4
+local wss = Instance.new("UIStroke", walkSpeedInput)
+wss.Color = Color3.fromRGB(120, 90, 200)
+wss.Transparency = 0.4
 
--- Apply WalkSpeed Button
+-- Apply walk speed button
 local applyWalkSpeedBtn = Instance.new("TextButton")
-applyWalkSpeedBtn.Name = "ApplyWalkSpeed"
 applyWalkSpeedBtn.Size = UDim2.new(1, 0, 0, 32)
 applyWalkSpeedBtn.BackgroundColor3 = Color3.fromRGB(70, 30, 120)
 applyWalkSpeedBtn.Text = "✓ Apply"
@@ -715,7 +710,7 @@ applyWalkSpeedBtn.Font = Enum.Font.GothamBold
 applyWalkSpeedBtn.TextSize = 12
 applyWalkSpeedBtn.AutoButtonColor = false
 applyWalkSpeedBtn.ZIndex = 3
-applyWalkSpeedBtn.LayoutOrder = 10
+applyWalkSpeedBtn.LayoutOrder = 11
 applyWalkSpeedBtn.Parent = miscScroll
 
 Instance.new("UICorner", applyWalkSpeedBtn).CornerRadius = UDim.new(0, 6)
@@ -724,256 +719,246 @@ Instance.new("UICorner", applyWalkSpeedBtn).CornerRadius = UDim.new(0, 6)
 local entryButtons = {}
 
 local function refreshHighlights()
-	for i, btn in pairs(entryButtons) do
-		if i == selectedIndex then
-			btn.BackgroundColor3 = Color3.fromRGB(100, 60, 180)
-			btn.UIStroke.Transparency = 0
-		else
-			btn.BackgroundColor3 = Color3.fromRGB(35, 25, 65)
-			btn.UIStroke.Transparency = 0.6
-		end
-	end
+    for i, btn in pairs(entryButtons) do
+        if i == selectedIndex then
+            btn.BackgroundColor3 = Color3.fromRGB(100, 60, 180)
+            btn.UIStroke.Transparency = 0
+        else
+            btn.BackgroundColor3 = Color3.fromRGB(35, 25, 65)
+            btn.UIStroke.Transparency = 0.6
+        end
+    end
 end
 
 local function addEntryToList(entryIndex, entryName)
-	local entryButton = Instance.new("TextButton")
-	entryButton.Name = "Entry_" .. entryIndex
-	entryButton.Size = UDim2.new(1, 0, 0, 22)
-	entryButton.BackgroundColor3 = Color3.fromRGB(35, 25, 65)
-	entryButton.Text = "  ✧ " .. entryName
-	entryButton.TextColor3 = Color3.fromRGB(220, 210, 255)
-	entryButton.Font = Enum.Font.Gotham
-	entryButton.TextSize = 9
-	entryButton.TextXAlignment = Enum.TextXAlignment.Left
-	entryButton.AutoButtonColor = false
-	entryButton.ZIndex = 4
-	entryButton.LayoutOrder = entryIndex
-	entryButton.Parent = scrollFrame
+    local entryButton = Instance.new("TextButton")
+    entryButton.Size = UDim2.new(1, 0, 0, 22)
+    entryButton.BackgroundColor3 = Color3.fromRGB(35, 25, 65)
+    entryButton.Text = "  ✧ " .. entryName
+    entryButton.TextColor3 = Color3.fromRGB(220, 210, 255)
+    entryButton.Font = Enum.Font.Gotham
+    entryButton.TextSize = 9
+    entryButton.TextXAlignment = Enum.TextXAlignment.Left
+    entryButton.AutoButtonColor = false
+    entryButton.ZIndex = 4
+    entryButton.LayoutOrder = entryIndex
+    entryButton.Parent = scrollFrame
 
-	Instance.new("UICorner", entryButton).CornerRadius = UDim.new(0, 6)
-	local entryStroke = Instance.new("UIStroke")
-	entryStroke.Name = "UIStroke"
-	entryStroke.Color = Color3.fromRGB(150, 100, 255)
-	entryStroke.Transparency = 0.6
-	entryStroke.Parent = entryButton
+    Instance.new("UICorner", entryButton).CornerRadius = UDim.new(0, 6)
+    local entryStroke = Instance.new("UIStroke")
+    entryStroke.Color = Color3.fromRGB(150, 100, 255)
+    entryStroke.Transparency = 0.6
+    entryStroke.Parent = entryButton
 
-	entryButton.MouseButton1Click:Connect(function()
-		selectedIndex = entryIndex
-		refreshHighlights()
-	end)
+    entryButton.MouseButton1Click:Connect(function()
+        selectedIndex = entryIndex
+        refreshHighlights()
+    end)
 
-	entryButtons[entryIndex] = entryButton
+    entryButtons[entryIndex] = entryButton
 end
 
 -- ============ TELEPORT METHODS ============
 local function instantTeleport(targetCFrame)
-	local char = player.Character
-	if not char then return end
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
-	hrp.CFrame = targetCFrame
+    local char = player.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    hrp.CFrame = targetCFrame
 end
 
 local function smoothTeleport(targetCFrame)
-	local char = player.Character
-	if not char then return end
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
-	local tween = TweenService:Create(hrp, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {CFrame = targetCFrame})
-	tween:Play()
-	tween.Completed:Wait()
+    local char = player.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    local tween = TweenService:Create(hrp, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {CFrame = targetCFrame})
+    tween:Play()
+    tween.Completed:Wait()
 end
 
 local function realisticTeleport(targetCFrame)
-	local char = player.Character
-	if not char then return end
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
-	local startPos = hrp.CFrame
-	local dist = (targetCFrame.Position - startPos.Position).Magnitude
-	local steps = math.ceil(dist / 50)
-	for i = 1, steps do
-		if not char or not char.Parent then break end
-		hrp.CFrame = startPos:Lerp(targetCFrame, i / steps)
-		RunService.RenderStepped:Wait()
-	end
-	if char and char.Parent then
-		hrp.CFrame = targetCFrame
-	end
+    local char = player.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    local startPos = hrp.CFrame
+    local dist = (targetCFrame.Position - startPos.Position).Magnitude
+    local steps = math.ceil(dist / 50)
+    for i = 1, steps do
+        if not char or not char.Parent then break end
+        hrp.CFrame = startPos:Lerp(targetCFrame, i / steps)
+        RunService.RenderStepped:Wait()
+    end
+    if char and char.Parent then
+        hrp.CFrame = targetCFrame
+    end
+end
+
+-- ============ FLY (FIXED) ============
+local function startFlying()
+    if isFlying then return end
+    isFlying = true
+    local char = player.Character
+    if not char then isFlying = false return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then isFlying = false return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if hum then hum.PlatformStand = true end
+    flyBody = Instance.new("BodyVelocity")
+    flyBody.Velocity = Vector3.new(0,0,0)
+    flyBody.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    flyBody.Parent = hrp
+    flyToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 30)
+    flyToggleBtn.Text = "✈️ Stop"
+    if flyConnection then flyConnection:Disconnect() end
+    flyConnection = RunService.RenderStepped:Connect(function()
+        if not isFlying then return end
+        local char = player.Character
+        if not char then stopFlying() return end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root or not flyBody then stopFlying() return end
+        local cam = workspace.CurrentCamera
+        local forward = (cam.CFrame.LookVector * Vector3.new(1,0,1)).Unit
+        local right = cam.CFrame.RightVector
+        local up = Vector3.new(0,1,0)
+        local moveDir = Vector3.new(0,0,0)
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir += forward end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir -= forward end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir -= right end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir += right end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir += up end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir -= up end
+        if moveDir.Magnitude > 0 then moveDir = moveDir.Unit * flySpeed end
+        flyBody.Velocity = moveDir
+    end)
+end
+
+local function stopFlying()
+    if not isFlying then return end
+    isFlying = false
+    if flyConnection then flyConnection:Disconnect(); flyConnection = nil end
+    if flyBody then flyBody:Destroy(); flyBody = nil end
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then hum.PlatformStand = false end
+    end
+    flyToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 120, 30)
+    flyToggleBtn.Text = "✈️ Fly"
 end
 
 -- ============ NOCLIP ============
 local function startNoclip()
-	if isNoclipping then return end
-	isNoclipping = true
-	local char = player.Character
-	if not char then isNoclipping = false return end
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if not hrp then isNoclipping = false return end
-
-	for _, part in pairs(char:GetDescendants()) do
-		if part:IsA("BasePart") then
-			originalCollisionGroups[part] = part.CanCollide
-			part.CanCollide = false
-		end
-	end
-
-	noclipToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 120, 30)
-	noclipToggleBtn.Text = "👻 Stop"
-
-	if noclipConnection then noclipConnection:Disconnect() end
-	noclipConnection = RunService.RenderStepped:Connect(function()
-		if not isNoclipping then return end
-		local c = player.Character
-		if not c then return end
-		local root = c:FindFirstChild("HumanoidRootPart")
-		if not root then return end
-		local cam = workspace.CurrentCamera
-		local forward = (cam.CFrame.LookVector * Vector3.new(1,0,1)).Unit
-		local right = cam.CFrame.RightVector
-		local up = Vector3.new(0,1,0)
-		local dir = Vector3.new(0,0,0)
-		if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir += forward end
-		if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir -= forward end
-		if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir -= right end
-		if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir += right end
-		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir += up end
-		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= up end
-		if dir.Magnitude > 0 then dir = dir.Unit * noclipSpeed * 0.016 end
-		root.CFrame += dir
-	end)
+    if isNoclipping then return end
+    isNoclipping = true
+    local char = player.Character
+    if not char then isNoclipping = false return end
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            originalCollisionGroups[part] = part.CanCollide
+            part.CanCollide = false
+        end
+    end
+    noclipToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 120, 30)
+    noclipToggleBtn.Text = "👻 Stop"
+    if noclipConnection then noclipConnection:Disconnect() end
+    noclipConnection = RunService.RenderStepped:Connect(function()
+        if not isNoclipping then return end
+        local char = player.Character
+        if not char then return end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+        local cam = workspace.CurrentCamera
+        local forward = (cam.CFrame.LookVector * Vector3.new(1,0,1)).Unit
+        local right = cam.CFrame.RightVector
+        local up = Vector3.new(0,1,0)
+        local moveDir = Vector3.new(0,0,0)
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir += forward end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir -= forward end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir -= right end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir += right end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir += up end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir -= up end
+        if moveDir.Magnitude > 0 then moveDir = moveDir.Unit * noclipSpeed * 0.016 end
+        root.CFrame = root.CFrame + moveDir
+    end)
 end
 
 local function stopNoclip()
-	if not isNoclipping then return end
-	isNoclipping = false
-	if noclipConnection then noclipConnection:Disconnect(); noclipConnection = nil end
-	local char = player.Character
-	if char then
-		for _, part in pairs(char:GetDescendants()) do
-			if part:IsA("BasePart") and originalCollisionGroups[part] ~= nil then
-				part.CanCollide = originalCollisionGroups[part]
-			end
-		end
-	end
-	originalCollisionGroups = {}
-	noclipToggleBtn.BackgroundColor3 = Color3.fromRGB(120, 80, 30)
-	noclipToggleBtn.Text = "👻 Noclip"
+    if not isNoclipping then return end
+    isNoclipping = false
+    if noclipConnection then noclipConnection:Disconnect(); noclipConnection = nil end
+    local char = player.Character
+    if char then
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") and originalCollisionGroups[part] ~= nil then
+                part.CanCollide = originalCollisionGroups[part]
+            end
+        end
+    end
+    originalCollisionGroups = {}
+    noclipToggleBtn.BackgroundColor3 = Color3.fromRGB(120, 80, 30)
+    noclipToggleBtn.Text = "👻 Noclip"
 end
 
 -- ============ INVISIBLE ============
 local function startInvisible()
-	if isInvisible then return end
-	isInvisible = true
-	local char = player.Character
-	if not char then isInvisible = false return end
-	for _, part in pairs(char:GetDescendants()) do
-		if part:IsA("BasePart") then
-			originalCharacterParts[part] = part.Transparency
-			part.Transparency = 1
-		elseif part:IsA("Accessory") then
-			local handle = part:FindFirstChild("Handle")
-			if handle then
-				originalCharacterParts[handle] = handle.Transparency
-				handle.Transparency = 1
-			end
-		end
-	end
-	invisibleToggleBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 200)
-	invisibleToggleBtn.Text = "👁️ Visible"
+    if isInvisible then return end
+    isInvisible = true
+    local char = player.Character
+    if not char then isInvisible = false return end
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            originalCharacterParts[part] = part.Transparency
+            part.Transparency = 1
+        elseif part:IsA("Decal") or part:IsA("Texture") then
+            originalCharacterParts[part] = part.Transparency
+            part.Transparency = 1
+        end
+    end
+    invisibleToggleBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 200)
+    invisibleToggleBtn.Text = "👁️ Visible"
 end
 
 local function stopInvisible()
-	if not isInvisible then return end
-	isInvisible = false
-	local char = player.Character
-	if char then
-		for part, trans in pairs(originalCharacterParts) do
-			if part and part.Parent then part.Transparency = trans end
-		end
-	end
-	originalCharacterParts = {}
-	invisibleToggleBtn.BackgroundColor3 = Color3.fromRGB(100, 50, 150)
-	invisibleToggleBtn.Text = "👁️ Invisible"
+    if not isInvisible then return end
+    isInvisible = false
+    local char = player.Character
+    if char then
+        for obj, trans in pairs(originalCharacterParts) do
+            if obj and obj.Parent then obj.Transparency = trans end
+        end
+    end
+    originalCharacterParts = {}
+    invisibleToggleBtn.BackgroundColor3 = Color3.fromRGB(100, 50, 150)
+    invisibleToggleBtn.Text = "👁️ Invisible"
 end
 
--- ============ FLY ============
-local function startFlying()
-	if isFlying then return end
-	isFlying = true
-	local char = player.Character
-	if not char then isFlying = false return end
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if not hrp then isFlying = false return end
-	local hum = char:FindFirstChildOfClass("Humanoid")
-	if hum then hum.PlatformStand = true end
-	flyBody = Instance.new("BodyVelocity")
-	flyBody.Velocity = Vector3.new()
-	flyBody.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-	flyBody.Parent = hrp
-	flyToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 30)
-	flyToggleBtn.Text = "✈️ Stop"
-	if flyConnection then flyConnection:Disconnect() end
-	flyConnection = RunService.RenderStepped:Connect(function()
-		if not isFlying then return end
-		local c = player.Character
-		if not c then return end
-		local root = c:FindFirstChild("HumanoidRootPart")
-		if not root or not flyBody then return end
-		local cam = workspace.CurrentCamera
-		local forward = (cam.CFrame.LookVector * Vector3.new(1,0,1)).Unit
-		local right = cam.CFrame.RightVector
-		local up = Vector3.new(0,1,0)
-		local dir = Vector3.new(0,0,0)
-		if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir += forward end
-		if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir -= forward end
-		if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir -= right end
-		if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir += right end
-		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir += up end
-		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= up end
-		if dir.Magnitude > 0 then dir = dir.Unit * flySpeed end
-		flyBody.Velocity = dir
-	end)
-end
-
-local function stopFlying()
-	if not isFlying then return end
-	isFlying = false
-	if flyConnection then flyConnection:Disconnect(); flyConnection = nil end
-	if flyBody then flyBody:Destroy(); flyBody = nil end
-	local char = player.Character
-	if char then
-		local hum = char:FindFirstChildOfClass("Humanoid")
-		if hum then hum.PlatformStand = false end
-	end
-	flyToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 120, 30)
-	flyToggleBtn.Text = "✈️ Fly"
-end
-
--- ============ WINDOW DRAGGING (Main Window) ============
+-- ============ WINDOW DRAGGING ============
 local dragging = false
 local dragStart, startPos = nil, nil
 
 titleBar.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragStart = mouse.X - mainFrame.AbsolutePosition.X
-		startPos = mainFrame.Position
-	end
+    if gameProcessed then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = mouse.X - mainFrame.AbsolutePosition.X
+        startPos = mainFrame.Position
+    end
 end)
 
 titleBar.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = false
-	end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
 end)
 
 UserInputService.InputChanged:Connect(function(input, gameProcessed)
-	if dragging and dragStart and startPos then
-		local newX = mouse.X - dragStart
-		mainFrame.Position = UDim2.new(0, newX, startPos.Y.Scale, startPos.Y.Offset)
-	end
+    if dragging and dragStart and startPos then
+        local newX = mouse.X - dragStart
+        mainFrame.Position = UDim2.new(0, newX, startPos.Y.Scale, startPos.Y.Offset)
+    end
 end)
 
 -- ============ MINIMIZED COSMIC CUBE ============
@@ -989,9 +974,9 @@ Instance.new("UICorner", minimizedCube).CornerRadius = UDim.new(0, 12)
 
 local cubeGradient = Instance.new("UIGradient")
 cubeGradient.Color = ColorSequence.new({
-	ColorSequenceKeypoint.new(0, Color3.fromRGB(10, 0, 30)),
-	ColorSequenceKeypoint.new(0.5, Color3.fromRGB(25, 5, 60)),
-	ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 15, 40)),
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(10, 0, 30)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(25, 5, 60)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 15, 40)),
 })
 cubeGradient.Rotation = -45
 cubeGradient.Parent = minimizedCube
@@ -1002,9 +987,8 @@ cubeStroke.Thickness = 2
 cubeStroke.Transparency = 0.4
 cubeStroke.Parent = minimizedCube
 
--- tiny stars on the cube
 for i = 1, 4 do
-	addStar(minimizedCube, math.random(5,95)/100, math.random(5,95)/100, 1, 0.9)
+    addStar(minimizedCube, math.random(5,95)/100, math.random(5,95)/100, 1, 0.9)
 end
 
 local sLabel = Instance.new("TextLabel")
@@ -1019,186 +1003,294 @@ sLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 sLabel.ZIndex = 5
 sLabel.Parent = minimizedCube
 
--- Dragging for the cube
+-- Cube dragging
 local cubeDragging = false
 local cubeDragStart, cubeStartPos = nil, nil
 local cubeClickStartPos = nil
 
 minimizedCube.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		cubeClickStartPos = Vector2.new(mouse.X, mouse.Y)
-		cubeDragging = true
-		cubeDragStart = mouse.X - minimizedCube.AbsolutePosition.X
-		cubeStartPos = minimizedCube.Position
-	end
+    if gameProcessed then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        cubeClickStartPos = Vector2.new(mouse.X, mouse.Y)
+        cubeDragging = true
+        cubeDragStart = mouse.X - minimizedCube.AbsolutePosition.X
+        cubeStartPos = minimizedCube.Position
+    end
 end)
 
 minimizedCube.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		cubeDragging = false
-	end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        cubeDragging = false
+    end
 end)
 
 UserInputService.InputChanged:Connect(function(input, gameProcessed)
-	if cubeDragging and cubeDragStart and cubeStartPos then
-		local newX = mouse.X - cubeDragStart
-		minimizedCube.Position = UDim2.new(0, newX, cubeStartPos.Y.Scale, cubeStartPos.Y.Offset)
-	end
+    if cubeDragging and cubeDragStart and cubeStartPos then
+        local newX = mouse.X - cubeDragStart
+        minimizedCube.Position = UDim2.new(0, newX, cubeStartPos.Y.Scale, cubeStartPos.Y.Offset)
+    end
 end)
 
 minimizedCube.MouseButton1Click:Connect(function()
-	if cubeClickStartPos then
-		local endPos = Vector2.new(mouse.X, mouse.Y)
-		if (endPos - cubeClickStartPos).Magnitude <= 5 then
-			-- restore main window near the cube
-			if not mainFrame.Visible then
-				minimizedCube.Visible = false
-				mainFrame.Visible = true
-				contentFrame.Visible = true
-				mainFrame.Position = UDim2.new(0, minimizedCube.AbsolutePosition.X, 0, minimizedCube.AbsolutePosition.Y)
-				minimizeButton.Text = "–"
-			end
-		end
-		cubeClickStartPos = nil
-	end
+    if cubeClickStartPos then
+        local endPos = Vector2.new(mouse.X, mouse.Y)
+        if (endPos - cubeClickStartPos).Magnitude <= 5 then
+            minimizedCube.Visible = false
+            mainFrame.Visible = true
+            contentFrame.Visible = true
+            mainFrame.Position = UDim2.new(0, minimizedCube.AbsolutePosition.X, 0, minimizedCube.AbsolutePosition.Y)
+            minimizeButton.Text = "–"
+        end
+        cubeClickStartPos = nil
+    end
 end)
+
+-- ============ MINIMIZE BUTTON ============
+minimizeButton.MouseButton1Click:Connect(function()
+    if mainFrame.Visible then
+        contentFrame.Visible = false
+        mainFrame.Visible = false
+        minimizedCube.Visible = true
+        minimizedCube.Position = UDim2.new(0, mainFrame.AbsolutePosition.X, 0, mainFrame.AbsolutePosition.Y)
+        minimizeButton.Text = "+"
+    else
+        if minimizedCube.Visible then minimizedCube.Visible = false end
+        mainFrame.Visible = true
+        contentFrame.Visible = true
+        mainFrame.Position = UDim2.new(0, minimizedCube.AbsolutePosition.X, 0, minimizedCube.AbsolutePosition.Y)
+        minimizeButton.Text = "–"
+    end
+end)
+
+-- ============ AUTO TELEPORT BUTTON (DRAGGABLE) ============
+local function createAutoTeleportButton()
+    if autoTeleportGui then return end
+    autoTeleportGui = Instance.new("ScreenGui")
+    autoTeleportGui.Name = "AutoTeleportGui"
+    autoTeleportGui.ResetOnSpawn = false
+    autoTeleportGui.Parent = playerGui
+
+    autoTeleportButton = Instance.new("TextButton")
+    autoTeleportButton.Name = "AutoTeleportButton"
+    autoTeleportButton.Size = UDim2.new(0, 120, 0, 40)
+    autoTeleportButton.Position = UDim2.new(1, -130, 1, -50)
+    autoTeleportButton.BackgroundColor3 = Color3.fromRGB(10, 8, 30)
+    autoTeleportButton.BorderSizePixel = 0
+    autoTeleportButton.Text = "TELEPORT"
+    autoTeleportButton.TextColor3 = Color3.fromRGB(0, 255, 100)
+    autoTeleportButton.Font = Enum.Font.GothamBlack
+    autoTeleportButton.TextSize = 18
+    autoTeleportButton.TextStrokeTransparency = 0.5
+    autoTeleportButton.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    autoTeleportButton.AutoButtonColor = false
+    autoTeleportButton.ZIndex = 10
+    autoTeleportButton.Parent = autoTeleportGui
+
+    Instance.new("UICorner", autoTeleportButton).CornerRadius = UDim.new(0, 12)
+    local btnGradient = Instance.new("UIGradient")
+    btnGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 10, 45)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 20, 60)),
+    })
+    btnGradient.Rotation = 45
+    btnGradient.Parent = autoTeleportButton
+
+    local btnStroke = Instance.new("UIStroke")
+    btnStroke.Color = Color3.fromRGB(0, 255, 100)
+    btnStroke.Thickness = 2
+    btnStroke.Transparency = 0.3
+    btnStroke.Parent = autoTeleportButton
+
+    for i = 1, 3 do
+        addStar(autoTeleportButton, math.random(5,95)/100, math.random(5,95)/100, 1, 0.8)
+    end
+
+    -- Dragging for the floating button (works like main window)
+    local btnDragging = false
+    local btnDragStartX = nil
+    local btnStartPos = nil
+
+    autoTeleportButton.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            btnDragging = true
+            btnDragStartX = mouse.X - autoTeleportButton.AbsolutePosition.X
+            btnStartPos = autoTeleportButton.Position
+        end
+    end)
+
+    autoTeleportButton.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            btnDragging = false
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input, gameProcessed)
+        if btnDragging and btnDragStartX and btnStartPos then
+            local newX = mouse.X - btnDragStartX
+            autoTeleportButton.Position = UDim2.new(0, newX, btnStartPos.Y.Scale, btnStartPos.Y.Offset)
+        end
+    end)
+
+    -- Teleport on click (only when not dragging, detected by small movement)
+    autoTeleportButton.MouseButton1Click:Connect(function()
+        -- Simple: if we dragged a significant distance, don't teleport
+        if btnDragging then return end
+        if not selectedIndex or not savedPositions[selectedIndex] then return end
+        local target = savedPositions[selectedIndex].cframe
+        if teleportMethod == "instant" then
+            instantTeleport(target)
+        elseif teleportMethod == "smooth" then
+            smoothTeleport(target)
+        elseif teleportMethod == "realistic" then
+            realisticTeleport(target)
+        end
+    end)
+end
+
+local function destroyAutoTeleportButton()
+    if autoTeleportGui then
+        autoTeleportGui:Destroy()
+        autoTeleportGui = nil
+        autoTeleportButton = nil
+    end
+end
 
 -- ============ BUTTON EVENTS ============
 teleporterTabBtn.MouseButton1Click:Connect(function()
-	teleporterTab.Visible = true
-	miscTab.Visible = false
-	teleporterTabBtn.BackgroundColor3 = Color3.fromRGB(70, 30, 120)
-	teleporterTabStroke.Transparency = 0.3
-	miscTabBtn.BackgroundColor3 = Color3.fromRGB(40, 25, 70)
-	miscTabStroke.Transparency = 0.5
+    teleporterTab.Visible = true
+    miscTab.Visible = false
+    teleporterTabBtn.BackgroundColor3 = Color3.fromRGB(70, 30, 120)
+    teleporterTabStroke.Transparency = 0.3
+    miscTabBtn.BackgroundColor3 = Color3.fromRGB(40, 25, 70)
+    miscTabStroke.Transparency = 0.5
 end)
 
 miscTabBtn.MouseButton1Click:Connect(function()
-	teleporterTab.Visible = false
-	miscTab.Visible = true
-	miscTabBtn.BackgroundColor3 = Color3.fromRGB(70, 30, 120)
-	miscTabStroke.Transparency = 0.3
-	teleporterTabBtn.BackgroundColor3 = Color3.fromRGB(40, 25, 70)
-	teleporterTabStroke.Transparency = 0.5
+    teleporterTab.Visible = false
+    miscTab.Visible = true
+    miscTabBtn.BackgroundColor3 = Color3.fromRGB(70, 30, 120)
+    miscTabStroke.Transparency = 0.3
+    teleporterTabBtn.BackgroundColor3 = Color3.fromRGB(40, 25, 70)
+    teleporterTabStroke.Transparency = 0.5
 end)
 
 instantMethodBtn.MouseButton1Click:Connect(function()
-	teleportMethod = "instant"
-	methodLabel.Text = "Method: instant"
-	instantMethodBtn.BackgroundColor3 = Color3.fromRGB(100, 60, 180)
-	tweenMethodBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 100)
-	realisticMethodBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 100)
+    teleportMethod = "instant"
+    methodLabel.Text = "Method: instant"
+    instantMethodBtn.BackgroundColor3 = Color3.fromRGB(100, 60, 180)
+    tweenMethodBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 100)
+    realisticMethodBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 100)
 end)
 
 tweenMethodBtn.MouseButton1Click:Connect(function()
-	teleportMethod = "smooth"
-	methodLabel.Text = "Method: smooth"
-	instantMethodBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 100)
-	tweenMethodBtn.BackgroundColor3 = Color3.fromRGB(100, 60, 180)
-	realisticMethodBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 100)
+    teleportMethod = "smooth"
+    methodLabel.Text = "Method: smooth"
+    instantMethodBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 100)
+    tweenMethodBtn.BackgroundColor3 = Color3.fromRGB(100, 60, 180)
+    realisticMethodBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 100)
 end)
 
 realisticMethodBtn.MouseButton1Click:Connect(function()
-	teleportMethod = "realistic"
-	methodLabel.Text = "Method: realistic"
-	instantMethodBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 100)
-	tweenMethodBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 100)
-	realisticMethodBtn.BackgroundColor3 = Color3.fromRGB(100, 60, 180)
+    teleportMethod = "realistic"
+    methodLabel.Text = "Method: realistic"
+    instantMethodBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 100)
+    tweenMethodBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 100)
+    realisticMethodBtn.BackgroundColor3 = Color3.fromRGB(100, 60, 180)
 end)
 
 saveButton.MouseButton1Click:Connect(function()
-	local char = player.Character
-	if not char then return end
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
-	local posName = nameBox.Text
-	if posName == "" then posName = "Position #" .. (#savedPositions + 1) end
-	table.insert(savedPositions, {name = posName, cframe = hrp.CFrame})
-	addEntryToList(#savedPositions, posName)
-	selectedIndex = #savedPositions
-	refreshHighlights()
-	nameBox.Text = ""
+    local char = player.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    local posName = nameBox.Text
+    if posName == "" then posName = "Position #" .. (#savedPositions + 1) end
+    table.insert(savedPositions, {name = posName, cframe = hrp.CFrame})
+    addEntryToList(#savedPositions, posName)
+    selectedIndex = #savedPositions
+    refreshHighlights()
+    nameBox.Text = ""
 end)
 
 teleportButton.MouseButton1Click:Connect(function()
-	if not selectedIndex or not savedPositions[selectedIndex] then return end
-	local targetCFrame = savedPositions[selectedIndex].cframe
-	if teleportMethod == "instant" then instantTeleport(targetCFrame)
-	elseif teleportMethod == "smooth" then smoothTeleport(targetCFrame)
-	elseif teleportMethod == "realistic" then realisticTeleport(targetCFrame) end
+    if not selectedIndex or not savedPositions[selectedIndex] then return end
+    local targetCFrame = savedPositions[selectedIndex].cframe
+    if teleportMethod == "instant" then instantTeleport(targetCFrame)
+    elseif teleportMethod == "smooth" then smoothTeleport(targetCFrame)
+    elseif teleportMethod == "realistic" then realisticTeleport(targetCFrame)
+    end
 end)
 
 deleteButton.MouseButton1Click:Connect(function()
-	if not selectedIndex then return end
-	table.remove(savedPositions, selectedIndex)
-	entryButtons[selectedIndex]:Destroy()
-	entryButtons[selectedIndex] = nil
-	selectedIndex = nil
-	refreshHighlights()
+    if not selectedIndex then return end
+    table.remove(savedPositions, selectedIndex)
+    if entryButtons[selectedIndex] then
+        entryButtons[selectedIndex]:Destroy()
+        entryButtons[selectedIndex] = nil
+    end
+    selectedIndex = nil
+    refreshHighlights()
 end)
 
 clearButton.MouseButton1Click:Connect(function()
-	for i, btn in pairs(entryButtons) do btn:Destroy() end
-	savedPositions = {}
-	entryButtons = {}
-	selectedIndex = nil
-end)
-
-minimizeButton.MouseButton1Click:Connect(function()
-	if mainFrame.Visible then
-		contentFrame.Visible = false
-		mainFrame.Visible = false
-		minimizedCube.Visible = true
-		minimizedCube.Position = UDim2.new(0, mainFrame.AbsolutePosition.X, 0, mainFrame.AbsolutePosition.Y)
-		minimizeButton.Text = "+"
-	else
-		if minimizedCube.Visible then minimizedCube.Visible = false end
-		mainFrame.Visible = true
-		contentFrame.Visible = true
-		mainFrame.Position = UDim2.new(0, minimizedCube.AbsolutePosition.X, 0, minimizedCube.AbsolutePosition.Y)
-		minimizeButton.Text = "–"
-	end
+    for i, btn in pairs(entryButtons) do btn:Destroy() end
+    savedPositions = {}
+    entryButtons = {}
+    selectedIndex = nil
 end)
 
 flyToggleBtn.MouseButton1Click:Connect(function()
-	if isFlying then stopFlying() else startFlying() end
+    if isFlying then stopFlying() else startFlying() end
 end)
 
 flySpeedSlider.FocusLost:Connect(function()
-	local speed = tonumber(flySpeedSlider.Text)
-	if speed then
-		flySpeed = clamp(speed, 1, 200)
-		flySpeedLabel.Text = "✈️ Speed: " .. flySpeed
-		flySpeedSlider.Text = tostring(flySpeed)
-	end
+    local speed = tonumber(flySpeedSlider.Text)
+    if speed then
+        flySpeed = clamp(speed, 1, 200)
+        flySpeedLabel.Text = "✈️ Speed: " .. flySpeed
+        flySpeedSlider.Text = tostring(flySpeed)
+    end
 end)
 
 noclipToggleBtn.MouseButton1Click:Connect(function()
-	if isNoclipping then stopNoclip() else startNoclip() end
+    if isNoclipping then stopNoclip() else startNoclip() end
 end)
 
 noclipSpeedSlider.FocusLost:Connect(function()
-	local speed = tonumber(noclipSpeedSlider.Text)
-	if speed then
-		noclipSpeed = clamp(speed, 1, 100)
-		noclipSpeedLabel.Text = "👻 Speed: " .. noclipSpeed
-		noclipSpeedSlider.Text = tostring(noclipSpeed)
-	end
+    local speed = tonumber(noclipSpeedSlider.Text)
+    if speed then
+        noclipSpeed = clamp(speed, 1, 100)
+        noclipSpeedLabel.Text = "👻 Speed: " .. noclipSpeed
+        noclipSpeedSlider.Text = tostring(noclipSpeed)
+    end
 end)
 
 invisibleToggleBtn.MouseButton1Click:Connect(function()
-	if isInvisible then stopInvisible() else startInvisible() end
+    if isInvisible then stopInvisible() else startInvisible() end
+end)
+
+autoTpToggleBtn.MouseButton1Click:Connect(function()
+    autoTeleportEnabled = not autoTeleportEnabled
+    if autoTeleportEnabled then
+        createAutoTeleportButton()
+        autoTpToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 150)
+        autoTpToggleBtn.Text = "⚡ Auto TP ON"
+    else
+        destroyAutoTeleportButton()
+        autoTpToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 100, 100)
+        autoTpToggleBtn.Text = "⚡ Auto TP OFF"
+    end
 end)
 
 applyWalkSpeedBtn.MouseButton1Click:Connect(function()
-	local char = player.Character
-	if not char then return end
-	local hum = char:FindFirstChildOfClass("Humanoid")
-	if not hum then return end
-	local speed = tonumber(walkSpeedInput.Text)
-	if speed then
-		hum.WalkSpeed = clamp(speed, 1, 200)
-		walkSpeedLabel.Text = "🚶 Walk: " .. math.floor(hum.WalkSpeed)
-	end
+    local char = player.Character
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    local speed = tonumber(walkSpeedInput.Text)
+    if speed then
+        hum.WalkSpeed = clamp(speed, 1, 200)
+        walkSpeedLabel.Text = "🚶 Walk: " .. math.floor(hum.WalkSpeed)
+    end
 end)
