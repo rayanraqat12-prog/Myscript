@@ -49,8 +49,8 @@ screenGui.Parent = playerGui
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 280, 0, 520)
-mainFrame.Position = UDim2.new(0.5, -140, 0.5, -260)
+mainFrame.Size = UDim2.new(0, 450, 0, 600)
+mainFrame.Position = UDim2.new(0.5, -225, 0.5, -300)
 mainFrame.BackgroundColor3 = Color3.fromRGB(10, 8, 30)
 mainFrame.BorderSizePixel = 0
 mainFrame.ClipsDescendants = true
@@ -159,65 +159,101 @@ local minCorner = Instance.new("UICorner")
 minCorner.CornerRadius = UDim.new(1, 0)
 minCorner.Parent = minimizeButton
 
--- ============ TAB BAR ============
+-- ============ MAIN CONTENT FRAME (Title + Body Side by Side) ============
+local contentFrame = Instance.new("Frame")
+contentFrame.Name = "ContentFrame"
+contentFrame.Size = UDim2.new(1, 0, 1, -36)
+contentFrame.Position = UDim2.new(0, 0, 0, 36)
+contentFrame.BackgroundTransparency = 1
+contentFrame.ZIndex = 2
+contentFrame.Parent = mainFrame
+
+-- ============ SIDE TAB BAR (Left Side) ============
 local tabBar = Instance.new("Frame")
 tabBar.Name = "TabBar"
-tabBar.Size = UDim2.new(1, 0, 0, 40)
-tabBar.Position = UDim2.new(0, 0, 0, 36)
+tabBar.Size = UDim2.new(0, 120, 1, 0)
+tabBar.Position = UDim2.new(0, 0, 0, 0)
 tabBar.BackgroundColor3 = Color3.fromRGB(15, 12, 35)
 tabBar.BorderSizePixel = 0
 tabBar.ZIndex = 2
-tabBar.Parent = mainFrame
+tabBar.Parent = contentFrame
 
 local tabBarStroke = Instance.new("UIStroke")
 tabBarStroke.Color = Color3.fromRGB(100, 70, 180)
 tabBarStroke.Transparency = 0.5
 tabBarStroke.Parent = tabBar
 
+local tabBarCorner = Instance.new("UICorner")
+tabBarCorner.CornerRadius = UDim.new(0, 16)
+tabBarCorner.Parent = tabBar
+
+local tabLayout = Instance.new("UIListLayout")
+tabLayout.Padding = UDim.new(0, 6)
+tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+tabLayout.FillDirection = Enum.FillDirection.Vertical
+tabLayout.Parent = tabBar
+
+local tabPadding = Instance.new("UIPadding")
+tabPadding.PaddingTop = UDim.new(0, 8)
+tabPadding.PaddingBottom = UDim.new(0, 8)
+tabPadding.PaddingLeft = UDim.new(0, 8)
+tabPadding.PaddingRight = UDim.new(0, 8)
+tabPadding.Parent = tabBar
+
 -- Teleporter Tab Button
 local teleporterTabBtn = Instance.new("TextButton")
 teleporterTabBtn.Name = "TeleporterTab"
-teleporterTabBtn.Size = UDim2.new(0.5, 0, 1, 0)
-teleporterTabBtn.Position = UDim2.new(0, 0, 0, 0)
+teleporterTabBtn.Size = UDim2.new(1, 0, 0, 40)
 teleporterTabBtn.BackgroundColor3 = Color3.fromRGB(70, 30, 120)
-teleporterTabBtn.Text = "🏠 Teleporter"
+teleporterTabBtn.Text = "🏠\nTeleporter"
 teleporterTabBtn.TextColor3 = Color3.fromRGB(240, 230, 255)
 teleporterTabBtn.Font = Enum.Font.GothamBold
-teleporterTabBtn.TextSize = 13
+teleporterTabBtn.TextSize = 11
 teleporterTabBtn.AutoButtonColor = false
 teleporterTabBtn.ZIndex = 3
+teleporterTabBtn.LayoutOrder = 1
 teleporterTabBtn.Parent = tabBar
 
 local teleporterTabCorner = Instance.new("UICorner")
 teleporterTabCorner.CornerRadius = UDim.new(0, 8)
 teleporterTabCorner.Parent = teleporterTabBtn
 
+local teleporterTabStroke = Instance.new("UIStroke")
+teleporterTabStroke.Color = Color3.fromRGB(150, 100, 255)
+teleporterTabStroke.Transparency = 0.3
+teleporterTabStroke.Parent = teleporterTabBtn
+
 -- Misc Tab Button
 local miscTabBtn = Instance.new("TextButton")
 miscTabBtn.Name = "MiscTab"
-miscTabBtn.Size = UDim2.new(0.5, 0, 1, 0)
-miscTabBtn.Position = UDim2.new(0.5, 0, 0, 0)
+miscTabBtn.Size = UDim2.new(1, 0, 0, 40)
 miscTabBtn.BackgroundColor3 = Color3.fromRGB(40, 25, 70)
-miscTabBtn.Text = "⭐ Misc"
+miscTabBtn.Text = "⭐\nMisc"
 miscTabBtn.TextColor3 = Color3.fromRGB(200, 180, 230)
 miscTabBtn.Font = Enum.Font.GothamBold
-miscTabBtn.TextSize = 13
+miscTabBtn.TextSize = 11
 miscTabBtn.AutoButtonColor = false
 miscTabBtn.ZIndex = 3
+miscTabBtn.LayoutOrder = 2
 miscTabBtn.Parent = tabBar
 
 local miscTabCorner = Instance.new("UICorner")
 miscTabCorner.CornerRadius = UDim.new(0, 8)
 miscTabCorner.Parent = miscTabBtn
 
--- ============ BODY ============
+local miscTabStroke = Instance.new("UIStroke")
+miscTabStroke.Color = Color3.fromRGB(100, 70, 180)
+miscTabStroke.Transparency = 0.5
+miscTabStroke.Parent = miscTabBtn
+
+-- ============ BODY (Right Side) ============
 local bodyFrame = Instance.new("Frame")
 bodyFrame.Name = "Body"
-bodyFrame.Size = UDim2.new(1, 0, 1, -76)
-bodyFrame.Position = UDim2.new(0, 0, 0, 76)
+bodyFrame.Size = UDim2.new(1, -120, 1, 0)
+bodyFrame.Position = UDim2.new(0, 120, 0, 0)
 bodyFrame.BackgroundTransparency = 1
 bodyFrame.ZIndex = 2
-bodyFrame.Parent = mainFrame
+bodyFrame.Parent = contentFrame
 
 -- ============ TELEPORTER TAB ============
 local teleporterTab = Instance.new("Frame")
@@ -228,11 +264,31 @@ teleporterTab.ZIndex = 3
 teleporterTab.Parent = bodyFrame
 teleporterTab.Visible = true
 
+local teleporterScroll = Instance.new("ScrollingFrame")
+teleporterScroll.Size = UDim2.new(1, 0, 1, 0)
+teleporterScroll.BackgroundTransparency = 1
+teleporterScroll.ScrollBarThickness = 0
+teleporterScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+teleporterScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+teleporterScroll.ZIndex = 3
+teleporterScroll.Parent = teleporterTab
+
+local teleporterLayout = Instance.new("UIListLayout")
+teleporterLayout.Padding = UDim.new(0, 8)
+teleporterLayout.SortOrder = Enum.SortOrder.LayoutOrder
+teleporterLayout.Parent = teleporterScroll
+
+local teleporterScrollPadding = Instance.new("UIPadding")
+teleporterScrollPadding.PaddingTop = UDim.new(0, 10)
+teleporterScrollPadding.PaddingBottom = UDim.new(0, 10)
+teleporterScrollPadding.PaddingLeft = UDim.new(0, 10)
+teleporterScrollPadding.PaddingRight = UDim.new(0, 10)
+teleporterScrollPadding.Parent = teleporterScroll
+
 -- Name input box
 local nameBox = Instance.new("TextBox")
 nameBox.Name = "NameBox"
-nameBox.Size = UDim2.new(1, -24, 0, 28)
-nameBox.Position = UDim2.new(0, 12, 0, 8)
+nameBox.Size = UDim2.new(1, 0, 0, 28)
 nameBox.BackgroundColor3 = Color3.fromRGB(30, 20, 60)
 nameBox.PlaceholderText = "Name this position..."
 nameBox.Text = ""
@@ -242,7 +298,8 @@ nameBox.Font = Enum.Font.Gotham
 nameBox.TextSize = 12
 nameBox.ClearTextOnFocus = false
 nameBox.ZIndex = 3
-nameBox.Parent = teleporterTab
+nameBox.LayoutOrder = 1
+nameBox.Parent = teleporterScroll
 
 local nameBoxCorner = Instance.new("UICorner")
 nameBoxCorner.CornerRadius = UDim.new(0, 10)
@@ -256,8 +313,7 @@ nameBoxStroke.Parent = nameBox
 -- Save button
 local saveButton = Instance.new("TextButton")
 saveButton.Name = "SaveButton"
-saveButton.Size = UDim2.new(1, -24, 0, 32)
-saveButton.Position = UDim2.new(0, 12, 0, 42)
+saveButton.Size = UDim2.new(1, 0, 0, 32)
 saveButton.BackgroundColor3 = Color3.fromRGB(70, 30, 120)
 saveButton.Text = "✦ Save Position"
 saveButton.TextColor3 = Color3.fromRGB(240, 230, 255)
@@ -265,7 +321,8 @@ saveButton.Font = Enum.Font.GothamBold
 saveButton.TextSize = 12
 saveButton.AutoButtonColor = false
 saveButton.ZIndex = 3
-saveButton.Parent = teleporterTab
+saveButton.LayoutOrder = 2
+saveButton.Parent = teleporterScroll
 
 local saveCorner = Instance.new("UICorner")
 saveCorner.CornerRadius = UDim.new(0, 10)
@@ -281,8 +338,7 @@ saveGradient.Parent = saveButton
 
 -- Teleport Method Label
 local methodLabel = Instance.new("TextLabel")
-methodLabel.Size = UDim2.new(1, -24, 0, 16)
-methodLabel.Position = UDim2.new(0, 12, 0, 80)
+methodLabel.Size = UDim2.new(1, 0, 0, 16)
 methodLabel.BackgroundTransparency = 1
 methodLabel.Text = "Teleport Method: " .. teleportMethod
 methodLabel.TextColor3 = Color3.fromRGB(170, 150, 210)
@@ -290,13 +346,27 @@ methodLabel.Font = Enum.Font.GothamBold
 methodLabel.TextSize = 10
 methodLabel.TextXAlignment = Enum.TextXAlignment.Left
 methodLabel.ZIndex = 3
-methodLabel.Parent = teleporterTab
+methodLabel.LayoutOrder = 3
+methodLabel.Parent = teleporterScroll
 
--- Method Selection Buttons
+-- Method Selection Buttons Container
+local methodButtonsContainer = Instance.new("Frame")
+methodButtonsContainer.Size = UDim2.new(1, 0, 0, 26)
+methodButtonsContainer.BackgroundTransparency = 1
+methodButtonsContainer.ZIndex = 3
+methodButtonsContainer.LayoutOrder = 4
+methodButtonsContainer.Parent = teleporterScroll
+
+local methodLayout = Instance.new("UIListLayout")
+methodLayout.Padding = UDim.new(0, 4)
+methodLayout.SortOrder = Enum.SortOrder.LayoutOrder
+methodLayout.FillDirection = Enum.FillDirection.Horizontal
+methodLayout.Parent = methodButtonsContainer
+
+-- Method buttons
 local instantMethodBtn = Instance.new("TextButton")
 instantMethodBtn.Name = "InstantMethod"
-instantMethodBtn.Size = UDim2.new(0.33, -2, 0, 24)
-instantMethodBtn.Position = UDim2.new(0, 12, 0, 100)
+instantMethodBtn.Size = UDim2.new(0.33, -2.67, 1, 0)
 instantMethodBtn.BackgroundColor3 = Color3.fromRGB(100, 60, 180)
 instantMethodBtn.Text = "Instant"
 instantMethodBtn.TextColor3 = Color3.fromRGB(240, 230, 255)
@@ -304,7 +374,8 @@ instantMethodBtn.Font = Enum.Font.GothamBold
 instantMethodBtn.TextSize = 10
 instantMethodBtn.AutoButtonColor = false
 instantMethodBtn.ZIndex = 3
-instantMethodBtn.Parent = teleporterTab
+instantMethodBtn.LayoutOrder = 1
+instantMethodBtn.Parent = methodButtonsContainer
 
 local instantCorner = Instance.new("UICorner")
 instantCorner.CornerRadius = UDim.new(0, 8)
@@ -312,8 +383,7 @@ instantCorner.Parent = instantMethodBtn
 
 local tweenMethodBtn = Instance.new("TextButton")
 tweenMethodBtn.Name = "TweenMethod"
-tweenMethodBtn.Size = UDim2.new(0.33, -2, 0, 24)
-tweenMethodBtn.Position = UDim2.new(0.33, 2, 0, 100)
+tweenMethodBtn.Size = UDim2.new(0.33, -2.67, 1, 0)
 tweenMethodBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 100)
 tweenMethodBtn.Text = "Smooth"
 tweenMethodBtn.TextColor3 = Color3.fromRGB(200, 180, 230)
@@ -321,7 +391,8 @@ tweenMethodBtn.Font = Enum.Font.GothamBold
 tweenMethodBtn.TextSize = 10
 tweenMethodBtn.AutoButtonColor = false
 tweenMethodBtn.ZIndex = 3
-tweenMethodBtn.Parent = teleporterTab
+tweenMethodBtn.LayoutOrder = 2
+tweenMethodBtn.Parent = methodButtonsContainer
 
 local tweenCorner = Instance.new("UICorner")
 tweenCorner.CornerRadius = UDim.new(0, 8)
@@ -329,8 +400,7 @@ tweenCorner.Parent = tweenMethodBtn
 
 local realisticMethodBtn = Instance.new("TextButton")
 realisticMethodBtn.Name = "RealisticMethod"
-realisticMethodBtn.Size = UDim2.new(0.33, -2, 0, 24)
-realisticMethodBtn.Position = UDim2.new(0.66, 2, 0, 100)
+realisticMethodBtn.Size = UDim2.new(0.33, -2.67, 1, 0)
 realisticMethodBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 100)
 realisticMethodBtn.Text = "Realistic"
 realisticMethodBtn.TextColor3 = Color3.fromRGB(200, 180, 230)
@@ -338,7 +408,8 @@ realisticMethodBtn.Font = Enum.Font.GothamBold
 realisticMethodBtn.TextSize = 10
 realisticMethodBtn.AutoButtonColor = false
 realisticMethodBtn.ZIndex = 3
-realisticMethodBtn.Parent = teleporterTab
+realisticMethodBtn.LayoutOrder = 3
+realisticMethodBtn.Parent = methodButtonsContainer
 
 local realisticCorner = Instance.new("UICorner")
 realisticCorner.CornerRadius = UDim.new(0, 8)
@@ -346,8 +417,7 @@ realisticCorner.Parent = realisticMethodBtn
 
 -- Menu label
 local menuLabel = Instance.new("TextLabel")
-menuLabel.Size = UDim2.new(1, -24, 0, 16)
-menuLabel.Position = UDim2.new(0, 12, 0, 130)
+menuLabel.Size = UDim2.new(1, 0, 0, 16)
 menuLabel.BackgroundTransparency = 1
 menuLabel.Text = "Saved Positions"
 menuLabel.TextColor3 = Color3.fromRGB(170, 150, 210)
@@ -355,13 +425,13 @@ menuLabel.Font = Enum.Font.GothamBold
 menuLabel.TextSize = 11
 menuLabel.TextXAlignment = Enum.TextXAlignment.Left
 menuLabel.ZIndex = 3
-menuLabel.Parent = teleporterTab
+menuLabel.LayoutOrder = 5
+menuLabel.Parent = teleporterScroll
 
 -- Scrolling list of saved positions
 local scrollFrame = Instance.new("ScrollingFrame")
 scrollFrame.Name = "PositionList"
-scrollFrame.Size = UDim2.new(1, -24, 1, -230)
-scrollFrame.Position = UDim2.new(0, 12, 0, 150)
+scrollFrame.Size = UDim2.new(1, 0, 0, 150)
 scrollFrame.BackgroundColor3 = Color3.fromRGB(18, 12, 40)
 scrollFrame.BackgroundTransparency = 0.3
 scrollFrame.BorderSizePixel = 0
@@ -370,7 +440,8 @@ scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(150, 100, 255)
 scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 scrollFrame.ZIndex = 3
-scrollFrame.Parent = teleporterTab
+scrollFrame.LayoutOrder = 6
+scrollFrame.Parent = teleporterScroll
 
 local scrollCorner = Instance.new("UICorner")
 scrollCorner.CornerRadius = UDim.new(0, 10)
@@ -388,11 +459,24 @@ listPadding.PaddingLeft = UDim.new(0, 4)
 listPadding.PaddingRight = UDim.new(0, 4)
 listPadding.Parent = scrollFrame
 
+-- Button container
+local buttonContainer = Instance.new("Frame")
+buttonContainer.Size = UDim2.new(1, 0, 0, 68)
+buttonContainer.BackgroundTransparency = 1
+buttonContainer.ZIndex = 3
+buttonContainer.LayoutOrder = 7
+buttonContainer.Parent = teleporterScroll
+
+local buttonLayout = Instance.new("UIListLayout")
+buttonLayout.Padding = UDim.new(0, 6)
+buttonLayout.SortOrder = Enum.SortOrder.LayoutOrder
+buttonLayout.FillDirection = Enum.FillDirection.Vertical
+buttonLayout.Parent = buttonContainer
+
 -- Teleport button
 local teleportButton = Instance.new("TextButton")
 teleportButton.Name = "TeleportButton"
-teleportButton.Size = UDim2.new(0.5, -4, 0, 30)
-teleportButton.Position = UDim2.new(0, 12, 1, -70)
+teleportButton.Size = UDim2.new(1, 0, 0, 30)
 teleportButton.BackgroundColor3 = Color3.fromRGB(50, 25, 100)
 teleportButton.Text = "🚀 Teleport"
 teleportButton.TextColor3 = Color3.fromRGB(240, 230, 255)
@@ -400,7 +484,8 @@ teleportButton.Font = Enum.Font.GothamBold
 teleportButton.TextSize = 11
 teleportButton.AutoButtonColor = false
 teleportButton.ZIndex = 3
-teleportButton.Parent = teleporterTab
+teleportButton.LayoutOrder = 1
+teleportButton.Parent = buttonContainer
 
 local teleportCorner = Instance.new("UICorner")
 teleportCorner.CornerRadius = UDim.new(0, 10)
@@ -411,19 +496,33 @@ teleportStroke.Color = Color3.fromRGB(150, 100, 255)
 teleportStroke.Transparency = 0.3
 teleportStroke.Parent = teleportButton
 
+-- Delete & Clear Container
+local deleteClearContainer = Instance.new("Frame")
+deleteClearContainer.Size = UDim2.new(1, 0, 0, 32)
+deleteClearContainer.BackgroundTransparency = 1
+deleteClearContainer.ZIndex = 3
+deleteClearContainer.LayoutOrder = 2
+deleteClearContainer.Parent = buttonContainer
+
+local deleteClearLayout = Instance.new("UIListLayout")
+deleteClearLayout.Padding = UDim.new(0, 4)
+deleteClearLayout.SortOrder = Enum.SortOrder.LayoutOrder
+deleteClearLayout.FillDirection = Enum.FillDirection.Horizontal
+deleteClearLayout.Parent = deleteClearContainer
+
 -- Delete button
 local deleteButton = Instance.new("TextButton")
 deleteButton.Name = "DeleteButton"
-deleteButton.Size = UDim2.new(0.5, -4, 0, 30)
-deleteButton.Position = UDim2.new(0.5, 4, 1, -70)
+deleteButton.Size = UDim2.new(0.5, -2, 1, 0)
 deleteButton.BackgroundColor3 = Color3.fromRGB(150, 30, 50)
 deleteButton.Text = "🗑️ Delete"
 deleteButton.TextColor3 = Color3.fromRGB(255, 200, 200)
 deleteButton.Font = Enum.Font.GothamBold
-deleteButton.TextSize = 11
+deleteButton.TextSize = 10
 deleteButton.AutoButtonColor = false
 deleteButton.ZIndex = 3
-deleteButton.Parent = teleporterTab
+deleteButton.LayoutOrder = 1
+deleteButton.Parent = deleteClearContainer
 
 local deleteCorner = Instance.new("UICorner")
 deleteCorner.CornerRadius = UDim.new(0, 10)
@@ -437,16 +536,16 @@ deleteStroke.Parent = deleteButton
 -- Clear All button
 local clearButton = Instance.new("TextButton")
 clearButton.Name = "ClearButton"
-clearButton.Size = UDim2.new(1, -24, 0, 30)
-clearButton.Position = UDim2.new(0, 12, 1, -32)
+clearButton.Size = UDim2.new(0.5, -2, 1, 0)
 clearButton.BackgroundColor3 = Color3.fromRGB(100, 20, 20)
 clearButton.Text = "⚠️ Clear All"
 clearButton.TextColor3 = Color3.fromRGB(255, 150, 150)
 clearButton.Font = Enum.Font.GothamBold
-clearButton.TextSize = 11
+clearButton.TextSize = 10
 clearButton.AutoButtonColor = false
 clearButton.ZIndex = 3
-clearButton.Parent = teleporterTab
+clearButton.LayoutOrder = 2
+clearButton.Parent = deleteClearContainer
 
 local clearCorner = Instance.new("UICorner")
 clearCorner.CornerRadius = UDim.new(0, 10)
@@ -466,11 +565,31 @@ miscTab.ZIndex = 3
 miscTab.Parent = bodyFrame
 miscTab.Visible = false
 
+local miscScroll = Instance.new("ScrollingFrame")
+miscScroll.Size = UDim2.new(1, 0, 1, 0)
+miscScroll.BackgroundTransparency = 1
+miscScroll.ScrollBarThickness = 0
+miscScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+miscScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+miscScroll.ZIndex = 3
+miscScroll.Parent = miscTab
+
+local miscLayout = Instance.new("UIListLayout")
+miscLayout.Padding = UDim.new(0, 8)
+miscLayout.SortOrder = Enum.SortOrder.LayoutOrder
+miscLayout.Parent = miscScroll
+
+local miscScrollPadding = Instance.new("UIPadding")
+miscScrollPadding.PaddingTop = UDim.new(0, 10)
+miscScrollPadding.PaddingBottom = UDim.new(0, 10)
+miscScrollPadding.PaddingLeft = UDim.new(0, 10)
+miscScrollPadding.PaddingRight = UDim.new(0, 10)
+miscScrollPadding.Parent = miscScroll
+
 -- Fly Toggle Button
 local flyToggleBtn = Instance.new("TextButton")
 flyToggleBtn.Name = "FlyToggle"
-flyToggleBtn.Size = UDim2.new(1, -24, 0, 36)
-flyToggleBtn.Position = UDim2.new(0, 12, 0, 8)
+flyToggleBtn.Size = UDim2.new(1, 0, 0, 36)
 flyToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 120, 30)
 flyToggleBtn.Text = "✈️ Start Flying"
 flyToggleBtn.TextColor3 = Color3.fromRGB(240, 255, 240)
@@ -478,7 +597,8 @@ flyToggleBtn.Font = Enum.Font.GothamBold
 flyToggleBtn.TextSize = 13
 flyToggleBtn.AutoButtonColor = false
 flyToggleBtn.ZIndex = 3
-flyToggleBtn.Parent = miscTab
+flyToggleBtn.LayoutOrder = 1
+flyToggleBtn.Parent = miscScroll
 
 local flyToggleCorner = Instance.new("UICorner")
 flyToggleCorner.CornerRadius = UDim.new(0, 10)
@@ -492,8 +612,7 @@ flyToggleStroke.Parent = flyToggleBtn
 -- Noclip Toggle Button
 local noclipToggleBtn = Instance.new("TextButton")
 noclipToggleBtn.Name = "NoclipToggle"
-noclipToggleBtn.Size = UDim2.new(1, -24, 0, 36)
-noclipToggleBtn.Position = UDim2.new(0, 12, 0, 50)
+noclipToggleBtn.Size = UDim2.new(1, 0, 0, 36)
 noclipToggleBtn.BackgroundColor3 = Color3.fromRGB(120, 80, 30)
 noclipToggleBtn.Text = "👻 Start Noclip"
 noclipToggleBtn.TextColor3 = Color3.fromRGB(255, 240, 200)
@@ -501,7 +620,8 @@ noclipToggleBtn.Font = Enum.Font.GothamBold
 noclipToggleBtn.TextSize = 13
 noclipToggleBtn.AutoButtonColor = false
 noclipToggleBtn.ZIndex = 3
-noclipToggleBtn.Parent = miscTab
+noclipToggleBtn.LayoutOrder = 2
+noclipToggleBtn.Parent = miscScroll
 
 local noclipToggleCorner = Instance.new("UICorner")
 noclipToggleCorner.CornerRadius = UDim.new(0, 10)
@@ -514,8 +634,7 @@ noclipToggleStroke.Parent = noclipToggleBtn
 
 -- Fly Speed Label
 local flySpeedLabel = Instance.new("TextLabel")
-flySpeedLabel.Size = UDim2.new(1, -24, 0, 18)
-flySpeedLabel.Position = UDim2.new(0, 12, 0, 92)
+flySpeedLabel.Size = UDim2.new(1, 0, 0, 18)
 flySpeedLabel.BackgroundTransparency = 1
 flySpeedLabel.Text = "✈️ Fly Speed: 50"
 flySpeedLabel.TextColor3 = Color3.fromRGB(200, 220, 255)
@@ -523,13 +642,13 @@ flySpeedLabel.Font = Enum.Font.GothamBold
 flySpeedLabel.TextSize = 11
 flySpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
 flySpeedLabel.ZIndex = 3
-flySpeedLabel.Parent = miscTab
+flySpeedLabel.LayoutOrder = 3
+flySpeedLabel.Parent = miscScroll
 
 -- Fly Speed Slider
 local flySpeedSlider = Instance.new("TextBox")
 flySpeedSlider.Name = "FlySpeedSlider"
-flySpeedSlider.Size = UDim2.new(1, -24, 0, 26)
-flySpeedSlider.Position = UDim2.new(0, 12, 0, 112)
+flySpeedSlider.Size = UDim2.new(1, 0, 0, 26)
 flySpeedSlider.BackgroundColor3 = Color3.fromRGB(30, 30, 60)
 flySpeedSlider.PlaceholderText = "Enter speed (1-200)"
 flySpeedSlider.Text = "50"
@@ -538,7 +657,8 @@ flySpeedSlider.PlaceholderColor3 = Color3.fromRGB(140, 120, 180)
 flySpeedSlider.Font = Enum.Font.Gotham
 flySpeedSlider.TextSize = 12
 flySpeedSlider.ZIndex = 3
-flySpeedSlider.Parent = miscTab
+flySpeedSlider.LayoutOrder = 4
+flySpeedSlider.Parent = miscScroll
 
 local flySpeedSliderCorner = Instance.new("UICorner")
 flySpeedSliderCorner.CornerRadius = UDim.new(0, 10)
@@ -551,8 +671,7 @@ flySpeedSliderStroke.Parent = flySpeedSlider
 
 -- Noclip Speed Label
 local noclipSpeedLabel = Instance.new("TextLabel")
-noclipSpeedLabel.Size = UDim2.new(1, -24, 0, 18)
-noclipSpeedLabel.Position = UDim2.new(0, 12, 0, 145)
+noclipSpeedLabel.Size = UDim2.new(1, 0, 0, 18)
 noclipSpeedLabel.BackgroundTransparency = 1
 noclipSpeedLabel.Text = "👻 Noclip Speed: 25"
 noclipSpeedLabel.TextColor3 = Color3.fromRGB(200, 220, 255)
@@ -560,13 +679,13 @@ noclipSpeedLabel.Font = Enum.Font.GothamBold
 noclipSpeedLabel.TextSize = 11
 noclipSpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
 noclipSpeedLabel.ZIndex = 3
-noclipSpeedLabel.Parent = miscTab
+noclipSpeedLabel.LayoutOrder = 5
+noclipSpeedLabel.Parent = miscScroll
 
 -- Noclip Speed Slider
 local noclipSpeedSlider = Instance.new("TextBox")
 noclipSpeedSlider.Name = "NoclipSpeedSlider"
-noclipSpeedSlider.Size = UDim2.new(1, -24, 0, 26)
-noclipSpeedSlider.Position = UDim2.new(0, 12, 0, 165)
+noclipSpeedSlider.Size = UDim2.new(1, 0, 0, 26)
 noclipSpeedSlider.BackgroundColor3 = Color3.fromRGB(30, 30, 60)
 noclipSpeedSlider.PlaceholderText = "Enter speed (1-100)"
 noclipSpeedSlider.Text = "25"
@@ -575,7 +694,8 @@ noclipSpeedSlider.PlaceholderColor3 = Color3.fromRGB(140, 120, 180)
 noclipSpeedSlider.Font = Enum.Font.Gotham
 noclipSpeedSlider.TextSize = 12
 noclipSpeedSlider.ZIndex = 3
-noclipSpeedSlider.Parent = miscTab
+noclipSpeedSlider.LayoutOrder = 6
+noclipSpeedSlider.Parent = miscScroll
 
 local noclipSpeedSliderCorner = Instance.new("UICorner")
 noclipSpeedSliderCorner.CornerRadius = UDim.new(0, 10)
@@ -588,8 +708,7 @@ noclipSpeedSliderStroke.Parent = noclipSpeedSlider
 
 -- WalkSpeed Label
 local walkSpeedLabel = Instance.new("TextLabel")
-walkSpeedLabel.Size = UDim2.new(1, -24, 0, 18)
-walkSpeedLabel.Position = UDim2.new(0, 12, 0, 198)
+walkSpeedLabel.Size = UDim2.new(1, 0, 0, 18)
 walkSpeedLabel.BackgroundTransparency = 1
 walkSpeedLabel.Text = "🚶 Walk Speed: 16"
 walkSpeedLabel.TextColor3 = Color3.fromRGB(200, 220, 255)
@@ -597,13 +716,13 @@ walkSpeedLabel.Font = Enum.Font.GothamBold
 walkSpeedLabel.TextSize = 11
 walkSpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
 walkSpeedLabel.ZIndex = 3
-walkSpeedLabel.Parent = miscTab
+walkSpeedLabel.LayoutOrder = 7
+walkSpeedLabel.Parent = miscScroll
 
 -- WalkSpeed Input
 local walkSpeedInput = Instance.new("TextBox")
 walkSpeedInput.Name = "WalkSpeedInput"
-walkSpeedInput.Size = UDim2.new(1, -24, 0, 26)
-walkSpeedInput.Position = UDim2.new(0, 12, 0, 218)
+walkSpeedInput.Size = UDim2.new(1, 0, 0, 26)
 walkSpeedInput.BackgroundColor3 = Color3.fromRGB(30, 30, 60)
 walkSpeedInput.PlaceholderText = "Enter walk speed (1-200)"
 walkSpeedInput.Text = "16"
@@ -612,7 +731,8 @@ walkSpeedInput.PlaceholderColor3 = Color3.fromRGB(140, 120, 180)
 walkSpeedInput.Font = Enum.Font.Gotham
 walkSpeedInput.TextSize = 12
 walkSpeedInput.ZIndex = 3
-walkSpeedInput.Parent = miscTab
+walkSpeedInput.LayoutOrder = 8
+walkSpeedInput.Parent = miscScroll
 
 local walkSpeedInputCorner = Instance.new("UICorner")
 walkSpeedInputCorner.CornerRadius = UDim.new(0, 10)
@@ -626,8 +746,7 @@ walkSpeedInputStroke.Parent = walkSpeedInput
 -- Apply WalkSpeed Button
 local applyWalkSpeedBtn = Instance.new("TextButton")
 applyWalkSpeedBtn.Name = "ApplyWalkSpeed"
-applyWalkSpeedBtn.Size = UDim2.new(1, -24, 0, 32)
-applyWalkSpeedBtn.Position = UDim2.new(0, 12, 0, 250)
+applyWalkSpeedBtn.Size = UDim2.new(1, 0, 0, 32)
 applyWalkSpeedBtn.BackgroundColor3 = Color3.fromRGB(70, 30, 120)
 applyWalkSpeedBtn.Text = "✓ Apply Walk Speed"
 applyWalkSpeedBtn.TextColor3 = Color3.fromRGB(240, 230, 255)
@@ -635,7 +754,8 @@ applyWalkSpeedBtn.Font = Enum.Font.GothamBold
 applyWalkSpeedBtn.TextSize = 12
 applyWalkSpeedBtn.AutoButtonColor = false
 applyWalkSpeedBtn.ZIndex = 3
-applyWalkSpeedBtn.Parent = miscTab
+applyWalkSpeedBtn.LayoutOrder = 9
+applyWalkSpeedBtn.Parent = miscScroll
 
 local applyWalkSpeedCorner = Instance.new("UICorner")
 applyWalkSpeedCorner.CornerRadius = UDim.new(0, 10)
@@ -659,12 +779,12 @@ end
 local function addEntryToList(entryIndex, entryName)
     local entryButton = Instance.new("TextButton")
     entryButton.Name = "Entry_" .. entryIndex
-    entryButton.Size = UDim2.new(1, 0, 0, 30)
+    entryButton.Size = UDim2.new(1, 0, 0, 28)
     entryButton.BackgroundColor3 = Color3.fromRGB(35, 25, 65)
     entryButton.Text = "  ✧ " .. entryName
     entryButton.TextColor3 = Color3.fromRGB(220, 210, 255)
     entryButton.Font = Enum.Font.Gotham
-    entryButton.TextSize = 12
+    entryButton.TextSize = 11
     entryButton.TextXAlignment = Enum.TextXAlignment.Left
     entryButton.AutoButtonColor = false
     entryButton.ZIndex = 4
@@ -828,7 +948,9 @@ teleporterTabBtn.MouseButton1Click:Connect(function()
     teleporterTab.Visible = true
     miscTab.Visible = false
     teleporterTabBtn.BackgroundColor3 = Color3.fromRGB(70, 30, 120)
+    teleporterTabStroke.Transparency = 0.3
     miscTabBtn.BackgroundColor3 = Color3.fromRGB(40, 25, 70)
+    miscTabStroke.Transparency = 0.5
 end)
 
 miscTabBtn.MouseButton1Click:Connect(function()
@@ -836,7 +958,9 @@ miscTabBtn.MouseButton1Click:Connect(function()
     teleporterTab.Visible = false
     miscTab.Visible = true
     teleporterTabBtn.BackgroundColor3 = Color3.fromRGB(40, 25, 70)
+    teleporterTabStroke.Transparency = 0.5
     miscTabBtn.BackgroundColor3 = Color3.fromRGB(70, 30, 120)
+    miscTabStroke.Transparency = 0.3
 end)
 
 -- Teleport method switching
@@ -1089,14 +1213,12 @@ minimizeButton.MouseButton1Click:Connect(function()
 
     if isMinimized then
         currentSizeTween = TweenService:Create(mainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {
-            Size = UDim2.new(0, 280, 0, 36)
+            Size = UDim2.new(0, 450, 0, 36)
         })
         minimizeButton.Text = "+"
-        tabBar.Visible = false
-        bodyFrame.Visible = false
+        contentFrame.Visible = false
     else
-        bodyFrame.Visible = true
-        tabBar.Visible = true
+        contentFrame.Visible = true
         currentSizeTween = TweenService:Create(mainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {
             Size = expandedSize
         })
