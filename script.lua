@@ -3,10 +3,10 @@
     - Save / Teleport (instant, smooth, realistic)
     - Fly, Noclip, Invisible, WalkSpeed
     - Auto Teleport (draggable floating cosmic button)
-    - Minimize to cosmic cube with green "S"
-    - Both main window and floating button are draggable via mouse or touch
+    - OLD Minimize button: collapse to title bar
+    - NEW Minimize button: cosmic cube with green "S"
+    - Window and floating button are draggable
     - Height: 420px
-    -- FIXED: titleLabel.Active = false (was blocking all input)
 --]]
 
 local Players = game:GetService("Players")
@@ -135,7 +135,7 @@ titleBarFix.ZIndex = 2
 titleBarFix.Parent = titleBar
 
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -50, 1, 0)
+titleLabel.Size = UDim2.new(1, -70, 1, 0)
 titleLabel.Position = UDim2.new(0, 12, 0, 0)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Text = "✦ Galaxy Teleporter"
@@ -144,22 +144,38 @@ titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextSize = 13
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.ZIndex = 3
-titleLabel.Active = false   -- << FIX: was true, now false to allow dragging & clicks through
+titleLabel.Active = false   -- allows dragging
 titleLabel.Parent = titleBar
 
-local minimizeButton = Instance.new("TextButton")
-minimizeButton.Name = "MinimizeButton"
-minimizeButton.Size = UDim2.new(0, 28, 0, 28)
-minimizeButton.Position = UDim2.new(1, -34, 0.5, -14)
-minimizeButton.BackgroundColor3 = Color3.fromRGB(60, 30, 100)
-minimizeButton.Text = "–"
-minimizeButton.TextColor3 = Color3.fromRGB(230, 210, 255)
-minimizeButton.Font = Enum.Font.GothamBold
-minimizeButton.TextSize = 16
-minimizeButton.ZIndex = 3
-minimizeButton.Parent = titleBar
+-- OLD minimize button (collapse to title bar)
+local oldMinimizeButton = Instance.new("TextButton")
+oldMinimizeButton.Name = "OldMinimizeButton"
+oldMinimizeButton.Size = UDim2.new(0, 28, 0, 28)
+oldMinimizeButton.Position = UDim2.new(1, -34, 0.5, -30)
+oldMinimizeButton.BackgroundColor3 = Color3.fromRGB(60, 30, 100)
+oldMinimizeButton.Text = "–"
+oldMinimizeButton.TextColor3 = Color3.fromRGB(230, 210, 255)
+oldMinimizeButton.Font = Enum.Font.GothamBold
+oldMinimizeButton.TextSize = 16
+oldMinimizeButton.ZIndex = 3
+oldMinimizeButton.Parent = titleBar
 
-Instance.new("UICorner", minimizeButton).CornerRadius = UDim.new(1, 0)
+Instance.new("UICorner", oldMinimizeButton).CornerRadius = UDim.new(1, 0)
+
+-- NEW cosmic cube minimize button
+local cosmicMinimizeButton = Instance.new("TextButton")
+cosmicMinimizeButton.Name = "CosmicMinimizeButton"
+cosmicMinimizeButton.Size = UDim2.new(0, 28, 0, 28)
+cosmicMinimizeButton.Position = UDim2.new(1, -34, 0.5, 2)
+cosmicMinimizeButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+cosmicMinimizeButton.Text = "⬡"
+cosmicMinimizeButton.TextColor3 = Color3.fromRGB(0, 255, 0)
+cosmicMinimizeButton.Font = Enum.Font.GothamBold
+cosmicMinimizeButton.TextSize = 16
+cosmicMinimizeButton.ZIndex = 3
+cosmicMinimizeButton.Parent = titleBar
+
+Instance.new("UICorner", cosmicMinimizeButton).CornerRadius = UDim.new(1, 0)
 
 -- ============ MAIN CONTENT ============
 local contentFrame = Instance.new("Frame")
@@ -795,7 +811,7 @@ local function realisticTeleport(targetCFrame)
     end
 end
 
--- ============ FLY ============
+-- ============ FLY (FIXED) ============
 local function startFlying()
     if isFlying then return end
     isFlying = true
@@ -935,7 +951,7 @@ local function stopInvisible()
     invisibleToggleBtn.Text = "👁️ Invisible"
 end
 
--- ============ WINDOW DRAGGING (using UserInputService, no mouse object) ============
+-- ============ WINDOW DRAGGING (using UserInputService) ============
 local dragging = false
 local dragStartX = nil
 local startPos = nil
@@ -1006,7 +1022,7 @@ sLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 sLabel.ZIndex = 5
 sLabel.Parent = minimizedCube
 
--- Cube dragging (also using UserInputService)
+-- Cube dragging
 local cubeDragging = false
 local cubeDragStartX = nil
 local cubeStartPos = nil
@@ -1044,27 +1060,48 @@ minimizedCube.MouseButton1Click:Connect(function()
             minimizedCube.Visible = false
             mainFrame.Visible = true
             contentFrame.Visible = true
+            mainFrame.Size = UDim2.new(0, 380, 0, 420)
             mainFrame.Position = UDim2.new(0, minimizedCube.AbsolutePosition.X, 0, minimizedCube.AbsolutePosition.Y)
-            minimizeButton.Text = "–"
         end
         cubeClickStartPos = nil
     end
 end)
 
--- ============ MINIMIZE BUTTON ============
-minimizeButton.MouseButton1Click:Connect(function()
+-- ============ OLD MINIMIZE BUTTON (collapse to title bar) ============
+local oldMinimized = false
+oldMinimizeButton.MouseButton1Click:Connect(function()
+    if oldMinimized then
+        -- Restore full window
+        contentFrame.Visible = true
+        mainFrame.Size = UDim2.new(0, 380, 0, 420)
+        oldMinimizeButton.Text = "–"
+        oldMinimized = false
+    else
+        -- Collapse to title bar
+        contentFrame.Visible = false
+        mainFrame.Size = UDim2.new(0, 380, 0, 30)
+        oldMinimizeButton.Text = "+"
+        oldMinimized = true
+    end
+end)
+
+-- ============ COSMIC CUBE MINIMIZE BUTTON ============
+cosmicMinimizeButton.MouseButton1Click:Connect(function()
     if mainFrame.Visible then
+        -- Hide window, show cube
         contentFrame.Visible = false
         mainFrame.Visible = false
         minimizedCube.Visible = true
         minimizedCube.Position = UDim2.new(0, mainFrame.AbsolutePosition.X, 0, mainFrame.AbsolutePosition.Y)
-        minimizeButton.Text = "+"
     else
-        if minimizedCube.Visible then minimizedCube.Visible = false end
+        -- If window hidden, restore from cube
+        minimizedCube.Visible = false
         mainFrame.Visible = true
         contentFrame.Visible = true
+        mainFrame.Size = UDim2.new(0, 380, 0, 420)
         mainFrame.Position = UDim2.new(0, minimizedCube.AbsolutePosition.X, 0, minimizedCube.AbsolutePosition.Y)
-        minimizeButton.Text = "–"
+        oldMinimized = false
+        oldMinimizeButton.Text = "–"
     end
 end)
 
