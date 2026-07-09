@@ -42,7 +42,7 @@ loadstring(game:HttpGet('https://raw.githubusercontent.com/rayanraqat12-prog/Mys
 
 - Roblox Executor (any modern one)
 - Game that allows scripts
-
----
-
-Made with ✦ for smooth teleporting!
+## New Version
+- **Removed fly**
+- **Add auto tp**
+- **Noclip working Classical**
