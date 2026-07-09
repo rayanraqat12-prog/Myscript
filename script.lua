@@ -1,10 +1,10 @@
 --[[
-    Galaxy Teleporter GUI – LocalScript
+    Galaxy Teleporter GUI – LocalScript (touch‑friendly)
     - Save / Teleport (instant, smooth, realistic)
-    - Fly (adjustable speed) + Noclip + Invisible + Walkspeed
+    - Fly, Noclip, Invisible, WalkSpeed
     - Auto Teleport (draggable floating cosmic button)
     - Minimize to cosmic cube with green "S"
-    - Both main window and floating button are draggable
+    - Both main window and floating button are draggable via mouse or touch
     - Height: 420px
 --]]
 
@@ -15,7 +15,6 @@ local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
-local mouse = player:GetMouse()
 
 -- ============ STATE ============
 local savedPositions = {}
@@ -935,29 +934,32 @@ local function stopInvisible()
     invisibleToggleBtn.Text = "👁️ Invisible"
 end
 
--- ============ WINDOW DRAGGING ============
+-- ============ WINDOW DRAGGING (using UserInputService, no mouse object) ============
 local dragging = false
-local dragStart, startPos = nil, nil
+local dragStartX = nil
+local startPos = nil
 
 titleBar.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
-        dragStart = mouse.X - mainFrame.AbsolutePosition.X
+        dragStartX = input.Position.X - mainFrame.AbsolutePosition.X
         startPos = mainFrame.Position
     end
 end)
 
-titleBar.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
+UserInputService.InputChanged:Connect(function(input, gameProcessed)
+    if dragging and dragStartX and startPos then
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            local newX = input.Position.X - dragStartX
+            mainFrame.Position = UDim2.new(0, newX, startPos.Y.Scale, startPos.Y.Offset)
+        end
     end
 end)
 
-UserInputService.InputChanged:Connect(function(input, gameProcessed)
-    if dragging and dragStart and startPos then
-        local newX = mouse.X - dragStart
-        mainFrame.Position = UDim2.new(0, newX, startPos.Y.Scale, startPos.Y.Offset)
+UserInputService.InputEnded:Connect(function(input, gameProcessed)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
     end
 end)
 
@@ -1003,38 +1005,41 @@ sLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 sLabel.ZIndex = 5
 sLabel.Parent = minimizedCube
 
--- Cube dragging
+-- Cube dragging (also using UserInputService)
 local cubeDragging = false
-local cubeDragStart, cubeStartPos = nil, nil
+local cubeDragStartX = nil
+local cubeStartPos = nil
 local cubeClickStartPos = nil
 
 minimizedCube.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        cubeClickStartPos = Vector2.new(mouse.X, mouse.Y)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        cubeClickStartPos = input.Position
         cubeDragging = true
-        cubeDragStart = mouse.X - minimizedCube.AbsolutePosition.X
+        cubeDragStartX = input.Position.X - minimizedCube.AbsolutePosition.X
         cubeStartPos = minimizedCube.Position
     end
 end)
 
-minimizedCube.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        cubeDragging = false
+UserInputService.InputChanged:Connect(function(input, gameProcessed)
+    if cubeDragging and cubeDragStartX and cubeStartPos then
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            local newX = input.Position.X - cubeDragStartX
+            minimizedCube.Position = UDim2.new(0, newX, cubeStartPos.Y.Scale, cubeStartPos.Y.Offset)
+        end
     end
 end)
 
-UserInputService.InputChanged:Connect(function(input, gameProcessed)
-    if cubeDragging and cubeDragStart and cubeStartPos then
-        local newX = mouse.X - cubeDragStart
-        minimizedCube.Position = UDim2.new(0, newX, cubeStartPos.Y.Scale, cubeStartPos.Y.Offset)
+UserInputService.InputEnded:Connect(function(input, gameProcessed)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        cubeDragging = false
     end
 end)
 
 minimizedCube.MouseButton1Click:Connect(function()
     if cubeClickStartPos then
-        local endPos = Vector2.new(mouse.X, mouse.Y)
-        if (endPos - cubeClickStartPos).Magnitude <= 5 then
+        local endPos = UserInputService:GetMouseLocation()
+        if (Vector2.new(endPos.X, endPos.Y) - cubeClickStartPos).Magnitude <= 5 then
             minimizedCube.Visible = false
             mainFrame.Visible = true
             contentFrame.Visible = true
@@ -1071,7 +1076,6 @@ local function createAutoTeleportButton()
     autoTeleportGui.Parent = playerGui
 
     autoTeleportButton = Instance.new("TextButton")
-    autoTeleportButton.Name = "AutoTeleportButton"
     autoTeleportButton.Size = UDim2.new(0, 120, 0, 40)
     autoTeleportButton.Position = UDim2.new(1, -130, 1, -50)
     autoTeleportButton.BackgroundColor3 = Color3.fromRGB(10, 8, 30)
@@ -1105,36 +1109,37 @@ local function createAutoTeleportButton()
         addStar(autoTeleportButton, math.random(5,95)/100, math.random(5,95)/100, 1, 0.8)
     end
 
-    -- Dragging for the floating button (works like main window)
+    -- Dragging for the floating button
     local btnDragging = false
     local btnDragStartX = nil
     local btnStartPos = nil
 
     autoTeleportButton.InputBegan:Connect(function(input, gameProcessed)
         if gameProcessed then return end
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             btnDragging = true
-            btnDragStartX = mouse.X - autoTeleportButton.AbsolutePosition.X
+            btnDragStartX = input.Position.X - autoTeleportButton.AbsolutePosition.X
             btnStartPos = autoTeleportButton.Position
-        end
-    end)
-
-    autoTeleportButton.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            btnDragging = false
         end
     end)
 
     UserInputService.InputChanged:Connect(function(input, gameProcessed)
         if btnDragging and btnDragStartX and btnStartPos then
-            local newX = mouse.X - btnDragStartX
-            autoTeleportButton.Position = UDim2.new(0, newX, btnStartPos.Y.Scale, btnStartPos.Y.Offset)
+            if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+                local newX = input.Position.X - btnDragStartX
+                autoTeleportButton.Position = UDim2.new(0, newX, btnStartPos.Y.Scale, btnStartPos.Y.Offset)
+            end
         end
     end)
 
-    -- Teleport on click (only when not dragging, detected by small movement)
+    UserInputService.InputEnded:Connect(function(input, gameProcessed)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            btnDragging = false
+        end
+    end)
+
+    -- Teleport on click (only when not dragged)
     autoTeleportButton.MouseButton1Click:Connect(function()
-        -- Simple: if we dragged a significant distance, don't teleport
         if btnDragging then return end
         if not selectedIndex or not savedPositions[selectedIndex] then return end
         local target = savedPositions[selectedIndex].cframe
