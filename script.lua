@@ -5,6 +5,7 @@
       - Save positions and teleport (Teleporter Tab)
       - Fly with adjustable speed (Misc Tab)
       - Change WalkSpeed (Misc Tab)
+      - Advanced anti-cheat teleport methods
       - Drag the window around, minimize it
 
     HOW TO USE:
@@ -24,6 +25,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 local savedPositions = {} -- { {name = "Home", cframe = CFrame}, ... }
 local selectedIndex = nil
 local currentTab = "teleporter" -- "teleporter" or "misc"
+local teleportMethod = "instant" -- "instant", "tween", or "realistic"
 
 -- Fly state
 local isFlying = false
@@ -41,8 +43,8 @@ screenGui.Parent = playerGui
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 280, 0, 420)
-mainFrame.Position = UDim2.new(0.5, -140, 0.5, -210)
+mainFrame.Size = UDim2.new(0, 280, 0, 480)
+mainFrame.Position = UDim2.new(0.5, -140, 0.5, -240)
 mainFrame.BackgroundColor3 = Color3.fromRGB(10, 8, 30)
 mainFrame.BorderSizePixel = 0
 mainFrame.ClipsDescendants = true
@@ -271,10 +273,75 @@ saveGradient.Color = ColorSequence.new({
 saveGradient.Rotation = 90
 saveGradient.Parent = saveButton
 
+-- Teleport Method Label
+local methodLabel = Instance.new("TextLabel")
+methodLabel.Size = UDim2.new(1, -24, 0, 18)
+methodLabel.Position = UDim2.new(0, 12, 0, 96)
+methodLabel.BackgroundTransparency = 1
+methodLabel.Text = "Teleport Method: " .. teleportMethod
+methodLabel.TextColor3 = Color3.fromRGB(170, 150, 210)
+methodLabel.Font = Enum.Font.GothamBold
+methodLabel.TextSize = 11
+methodLabel.TextXAlignment = Enum.TextXAlignment.Left
+methodLabel.ZIndex = 3
+methodLabel.Parent = teleporterTab
+
+-- Method Selection Buttons
+local instantMethodBtn = Instance.new("TextButton")
+instantMethodBtn.Name = "InstantMethod"
+instantMethodBtn.Size = UDim2.new(0.33, -2, 0, 28)
+instantMethodBtn.Position = UDim2.new(0, 12, 0, 118)
+instantMethodBtn.BackgroundColor3 = Color3.fromRGB(100, 60, 180)
+instantMethodBtn.Text = "Instant"
+instantMethodBtn.TextColor3 = Color3.fromRGB(240, 230, 255)
+instantMethodBtn.Font = Enum.Font.GothamBold
+instantMethodBtn.TextSize = 11
+instantMethodBtn.AutoButtonColor = false
+instantMethodBtn.ZIndex = 3
+instantMethodBtn.Parent = teleporterTab
+
+local instantCorner = Instance.new("UICorner")
+instantCorner.CornerRadius = UDim.new(0, 8)
+instantCorner.Parent = instantMethodBtn
+
+local tweenMethodBtn = Instance.new("TextButton")
+tweenMethodBtn.Name = "TweenMethod"
+tweenMethodBtn.Size = UDim2.new(0.33, -2, 0, 28)
+tweenMethodBtn.Position = UDim2.new(0.33, 2, 0, 118)
+tweenMethodBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 100)
+tweenMethodBtn.Text = "Smooth"
+tweenMethodBtn.TextColor3 = Color3.fromRGB(200, 180, 230)
+tweenMethodBtn.Font = Enum.Font.GothamBold
+tweenMethodBtn.TextSize = 11
+tweenMethodBtn.AutoButtonColor = false
+tweenMethodBtn.ZIndex = 3
+tweenMethodBtn.Parent = teleporterTab
+
+local tweenCorner = Instance.new("UICorner")
+tweenCorner.CornerRadius = UDim.new(0, 8)
+tweenCorner.Parent = tweenMethodBtn
+
+local realisticMethodBtn = Instance.new("TextButton")
+realisticMethodBtn.Name = "RealisticMethod"
+realisticMethodBtn.Size = UDim2.new(0.33, -2, 0, 28)
+realisticMethodBtn.Position = UDim2.new(0.66, 2, 0, 118)
+realisticMethodBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 100)
+realisticMethodBtn.Text = "Realistic"
+realisticMethodBtn.TextColor3 = Color3.fromRGB(200, 180, 230)
+realisticMethodBtn.Font = Enum.Font.GothamBold
+realisticMethodBtn.TextSize = 11
+realisticMethodBtn.AutoButtonColor = false
+realisticMethodBtn.ZIndex = 3
+realisticMethodBtn.Parent = teleporterTab
+
+local realisticCorner = Instance.new("UICorner")
+realisticCorner.CornerRadius = UDim.new(0, 8)
+realisticCorner.Parent = realisticMethodBtn
+
 -- Menu label
 local menuLabel = Instance.new("TextLabel")
 menuLabel.Size = UDim2.new(1, -24, 0, 18)
-menuLabel.Position = UDim2.new(0, 12, 0, 96)
+menuLabel.Position = UDim2.new(0, 12, 0, 156)
 menuLabel.BackgroundTransparency = 1
 menuLabel.Text = "Saved Positions"
 menuLabel.TextColor3 = Color3.fromRGB(170, 150, 210)
@@ -287,8 +354,8 @@ menuLabel.Parent = teleporterTab
 -- Scrolling list of saved positions
 local scrollFrame = Instance.new("ScrollingFrame")
 scrollFrame.Name = "PositionList"
-scrollFrame.Size = UDim2.new(1, -24, 1, -210)
-scrollFrame.Position = UDim2.new(0, 12, 0, 118)
+scrollFrame.Size = UDim2.new(1, -24, 1, -248)
+scrollFrame.Position = UDim2.new(0, 12, 0, 176)
 scrollFrame.BackgroundColor3 = Color3.fromRGB(18, 12, 40)
 scrollFrame.BackgroundTransparency = 0.3
 scrollFrame.BorderSizePixel = 0
@@ -556,6 +623,53 @@ local function addEntryToList(entryIndex, entryName)
     entryButtons[entryIndex] = entryButton
 end
 
+-- ============ ADVANCED TELEPORT METHODS ============
+
+local function instantTeleport(targetCFrame)
+    local character = player.Character
+    if not character then return end
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    hrp.CFrame = targetCFrame
+end
+
+local function smoothTeleport(targetCFrame)
+    local character = player.Character
+    if not character then return end
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    local tween = TweenService:Create(hrp, TweenInfo.new(0.5, Enum.EasingStyle.Quad), {CFrame = targetCFrame})
+    tween:Play()
+    tween.Completed:Wait()
+end
+
+local function realisticTeleport(targetCFrame)
+    local character = player.Character
+    if not character then return end
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    -- Bypass anti-cheat by simulating realistic movement
+    local startPos = hrp.CFrame
+    local targetPos = targetCFrame
+    local distance = (targetPos.Position - startPos.Position).Magnitude
+    local duration = math.max(0.1, distance / 500) -- Scale duration based on distance
+    
+    -- Create intermediate waypoints for smoother path
+    local steps = math.ceil(distance / 50)
+    for i = 1, steps do
+        local alpha = i / steps
+        local newCFrame = startPos:Lerp(targetPos, alpha)
+        hrp.CFrame = newCFrame
+        RunService.RenderStepped:Wait()
+    end
+    
+    -- Final position
+    hrp.CFrame = targetPos
+end
+
 -- ============ FLY FUNCTION ============
 local function startFlying()
     if isFlying then return end
@@ -620,6 +734,31 @@ miscTabBtn.MouseButton1Click:Connect(function()
     miscTabBtn.BackgroundColor3 = Color3.fromRGB(70, 30, 120)
 end)
 
+-- Teleport method switching
+instantMethodBtn.MouseButton1Click:Connect(function()
+    teleportMethod = "instant"
+    methodLabel.Text = "Teleport Method: instant"
+    instantMethodBtn.BackgroundColor3 = Color3.fromRGB(100, 60, 180)
+    tweenMethodBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 100)
+    realisticMethodBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 100)
+end)
+
+tweenMethodBtn.MouseButton1Click:Connect(function()
+    teleportMethod = "tween"
+    methodLabel.Text = "Teleport Method: smooth"
+    instantMethodBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 100)
+    tweenMethodBtn.BackgroundColor3 = Color3.fromRGB(100, 60, 180)
+    realisticMethodBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 100)
+end)
+
+realisticMethodBtn.MouseButton1Click:Connect(function()
+    teleportMethod = "realistic"
+    methodLabel.Text = "Teleport Method: realistic"
+    instantMethodBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 100)
+    tweenMethodBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 100)
+    realisticMethodBtn.BackgroundColor3 = Color3.fromRGB(100, 60, 180)
+end)
+
 -- Save position
 saveButton.MouseButton1Click:Connect(function()
     local character = player.Character
@@ -648,12 +787,15 @@ end)
 teleportButton.MouseButton1Click:Connect(function()
     if not selectedIndex or not savedPositions[selectedIndex] then return end
 
-    local character = player.Character
-    if not character then return end
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-
-    hrp.CFrame = savedPositions[selectedIndex].cframe
+    local targetPos = savedPositions[selectedIndex].cframe
+    
+    if teleportMethod == "instant" then
+        instantTeleport(targetPos)
+    elseif teleportMethod == "tween" then
+        smoothTeleport(targetPos)
+    elseif teleportMethod == "realistic" then
+        realisticTeleport(targetPos)
+    end
 end)
 
 -- Delete position
