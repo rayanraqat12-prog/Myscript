@@ -31,6 +31,7 @@ local flySpeed = 50
 local flyDirection = Vector3.new(0, 0, 0)
 local flyBody = nil
 local flyBodyVelocity = nil
+local flyConnection = nil
 
 -- ============ GUI SETUP ============
 local screenGui = Instance.new("ScreenGui")
@@ -565,20 +566,16 @@ local function startFlying()
     local hrp = character:FindFirstChild("HumanoidRootPart")
     if not hrp then isFlying = false return end
 
-    -- Create fly body
-    flyBody = hrp:Clone()
-    flyBody.Transparency = 0.5
+    -- Create invisible flying body
+    flyBody = Instance.new("Part")
+    flyBody.Shape = Enum.PartType.Block
+    flyBody.Transparency = 1
     flyBody.Size = Vector3.new(1, 1, 1)
     flyBody.CanCollide = false
-    flyBody:ClearAllChildren()
+    flyBody.CFrame = hrp.CFrame
+    flyBody.TopSurface = Enum.SurfaceType.Smooth
+    flyBody.BottomSurface = Enum.SurfaceType.Smooth
     flyBody.Parent = workspace
-
-    -- Make original character invisible
-    for _, part in pairs(character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.Transparency = 1
-        end
-    end
 
     -- Create BodyVelocity for movement
     flyBodyVelocity = Instance.new("BodyVelocity")
@@ -593,15 +590,6 @@ end
 local function stopFlying()
     if not isFlying then return end
     isFlying = false
-
-    local character = player.Character
-    if character then
-        for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.Transparency = 0
-            end
-        end
-    end
 
     if flyBody then
         flyBody:Destroy()
@@ -762,21 +750,18 @@ RunService.RenderStepped:Connect(function()
         moveDirection = moveDirection + Vector3.new(0, -1, 0)
     end
 
-    if moveDirection.Magnitude > 0 then
-        moveDirection = moveDirection.Unit
-    end
-
     -- Get camera direction
     local camera = workspace.CurrentCamera
-    local forward = (camera.CFrame.LookVector * Vector3.new(1, 0, 1)).Unit
+    local forward = camera.CFrame.LookVector
     local right = camera.CFrame.RightVector
 
-    local adjustedDirection = (forward * moveDirection.Z + right * moveDirection.X) * Vector3.new(1, 0, 1) + Vector3.new(0, moveDirection.Y, 0)
+    local finalDirection = (forward * moveDirection.Z) + (right * moveDirection.X) + (Vector3.new(0, 1, 0) * moveDirection.Y)
 
-    flyBodyVelocity.Velocity = adjustedDirection * flySpeed
+    if finalDirection.Magnitude > 0 then
+        finalDirection = finalDirection.Unit
+    end
 
-    -- Keep the fly body at cursor position
-    flyBody.CFrame = CFrame.new(flyBody.Position, flyBody.Position + camera.CFrame.LookVector)
+    flyBodyVelocity.Velocity = finalDirection * flySpeed
 end)
 
 -- ============ MINIMIZE LOGIC ============
