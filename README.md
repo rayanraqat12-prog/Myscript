@@ -47,4 +47,4 @@ loadstring(game:HttpGet('https://raw.githubusercontent.com/rayanraqat12-prog/Mys
 - **Add auto tp**
 - **Noclip working Classical**
 ## New update v1.4
--player info tab added(some things need httpservice enabled in game/place in game)
+- *player info tab added(some things need httpservice enabled in game/place in game)*
